@@ -1,3 +1,4 @@
+require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
 const moment = require('moment');
@@ -41,7 +42,7 @@ app.use(express.json());
 app.use(authMiddleware);
 
 // Connect to MongoDB
-mongoose.connect('mongodb://localhost:27017/oslam');
+mongoose.connect(process.env.MONGODB_URI);
 const categoryRoutes = require('./routes/categoryRoutes'); // adjust path
 app.use('/', categoryRoutes);
 
