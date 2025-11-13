@@ -25,7 +25,7 @@ app.set('io', io);
 
 // Session middleware
 app.use(session({
-  secret: 'oslamhospital-secret-key-2025',
+  secret: process.env.SESSION_SECRET,
   resave: false,
   saveUninitialized: false,
   cookie: { 
@@ -42,7 +42,7 @@ app.use(express.json());
 app.use(authMiddleware);
 
 // Connect to MongoDB
-mongoose.connect(process.env.MONGODB_URI);
+mongoose.connect(process.env.MONGODB_URI)
 const categoryRoutes = require('./routes/categoryRoutes'); // adjust path
 app.use('/', categoryRoutes);
 
@@ -1454,7 +1454,7 @@ io.on('connection', (socket) => {
 });
 
 // Start server with PORT env override and auto-fallback if port is in use
-let currentPort = parseInt(process.env.PORT, 10) || 3000;
+let currentPort = parseInt(process.env.PORT, 10);
 let retries = 0;
 const MAX_RETRIES = 5;
 
