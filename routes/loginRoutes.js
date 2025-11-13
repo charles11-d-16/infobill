@@ -64,7 +64,7 @@ router.post('/login', async (req, res) => {
     const transporter = require('../utils/mailer');
     try {
       await transporter.sendMail({
-        from: 'raycharlesvalino1993@gmail.com',
+        from: process.env.MAIL_FROM_ADDRESS,
         to: staff.emailAddress,
         subject: 'Your OsLAMIB Login OTP',
         text: `Your OTP code is: ${otp}`
@@ -111,7 +111,7 @@ router.post('/forgot-password', async (req, res) => {
   const transporter = require('../utils/mailer');
   try {
     await transporter.sendMail({
-      from: 'raycharlesvalino1993@gmail.com',
+      from: process.env.MAIL_FROM_ADDRESS,
       to: staff.emailAddress,
       subject: 'OSLAM InfoBill Login OTP',
       text: `Your login OTP code is: ${otp}`
