@@ -1,0 +1,308 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script src="/js/sidebarToggle.js"></script>
+<title>Sign in to OSLAM InfoBill</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+<style>
+/* Fade animations for login container */
+.fade-in {
+  animation: fadeInLogin 1s ease forwards;
+}
+.fade-out {
+  animation: fadeOutLogin 0.7s ease forwards;
+}
+@keyframes fadeInLogin {
+  from { opacity: 0; transform: translateY(30px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeOutLogin {
+  from { opacity: 1; transform: translateY(0); }
+  to { opacity: 0; transform: translateY(-30px); }
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { 
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', sans-serif; 
+    min-height: 100vh; 
+    display: flex; 
+    justify-content: center; 
+    align-items: center; 
+    background: #f9fafe; 
+    position: relative;
+}
+body::before {
+    content: '';
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, #ffffff 0%, #e6f7ff 100%);
+    z-index: -1;
+}
+.container { 
+    display: flex; 
+    width: 90%; 
+    max-width: 1000px; 
+    border-radius: 16px; 
+    overflow: hidden; 
+    background: #fff; 
+    box-shadow: 0 12px 40px rgba(0,0,0,0.08); 
+}
+
+/* LEFT SIDE */
+.left-side { 
+    flex: 1; 
+    display: flex; 
+    flex-direction: column; 
+    align-items: center; 
+    justify-content: center; 
+    padding: 40px 30px; 
+    text-align: center; 
+    background: #f0f8ff; 
+}
+.left-side .logo { width: 120px; height: auto; margin-bottom: 20px; }
+.left-side h1 { font-size: 32px; color: #0e7490; font-weight: 700; margin-bottom: 16px; } /* softened color */
+.left-side p { font-size: 16px; color: #555; line-height: 1.6; margin-bottom: 24px; }
+.left-side img { width: 80%; max-width: 300px; border-radius: 12px; margin-top: 16px; }
+
+/* RIGHT SIDE (LOGIN FORM) */
+.right-side { 
+    flex: 1; 
+    display: flex; 
+    flex-direction: column; 
+    justify-content: center; 
+    padding: 40px 30px; 
+}
+.right-side h1 { font-size: 28px; font-weight: 600; color: #0e7490; margin-bottom: 8px; } /* softened color */
+.right-side .subtitle { font-size: 14px; color: #666; margin-bottom: 20px; line-height: 1.5; }
+.form-group { margin-bottom: 16px; }
+label { display: block; font-size: 13px; font-weight: 500; color: #333; margin-bottom: 6px; }
+.input-wrapper { position: relative; }
+input[type="text"], input[type="password"], input[type="number"] { width: 100%; padding: 12px 14px; font-size: 14px; border: 1.5px solid #d1d5db; border-radius: 8px; outline: none; transition: border-color 0.3s, box-shadow 0.3s; }
+input[type="text"]:focus, input[type="password"]:focus, input[type="number"]:focus { border-color: #0891b2; box-shadow: 0 0 8px rgba(8,145,178,0.15); }
+input::placeholder { color: #aaa; }
+.password-toggle { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); cursor: pointer; color: #666; font-size: 16px; }
+.forgot-password { text-align: right; margin-bottom: 16px; }
+.forgot-password a { font-size: 13px; color: #0891b2; text-decoration: none; }
+.forgot-password a:hover { text-decoration: underline; }
+.login-btn { width: 100%; padding: 12px; font-size: 15px; font-weight: 600; color: white; background: #0891b2; border: none; border-radius: 8px; cursor: pointer; transition: background 0.3s, transform 0.2s; display: flex; align-items: center; justify-content: center; gap: 6px; }
+.login-btn:hover { background: #0e7490; }
+.login-btn:active { transform: translateY(1px); }
+#math-captcha-block { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 12px 0 16px; }
+#math-captcha-block input { width: 80px; height: 36px; text-align: center; font-size: 16px; border-radius: 6px; border: 1.5px solid #d1d5db; }
+#captchaRefresh { width: 28px; height: 28px; border: none; background: none; cursor: pointer; display: flex; align-items: center; justify-content: center; color: #0891b2; }
+
+
+  @media (max-width: 900px) {
+    .container {
+      flex-direction: column;
+      width: 98%;
+      max-width: 98vw;
+      min-width: 0;
+      border-radius: 10px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.07);
+      margin: 12px auto;
+    }
+    .left-side, .right-side {
+      padding: 24px 12px;
+      min-width: 0;
+      width: 100%;
+      max-width: 100vw;
+    }
+    .left-side img {
+      max-width: 180px;
+    }
+    .left-side h1 {
+      font-size: 24px;
+    }
+    .right-side h1 {
+      font-size: 22px;
+    }
+    .right-side .subtitle {
+      font-size: 13px;
+    }
+  }
+
+</style>
+</head>
+<body>
+<!-- Splash Screen -->
+<div id="splashScreen" style="position:fixed;top:0;left:0;width:100vw;height:100vh;background:#000;z-index:99999;display:flex;align-items:center;justify-content:center;">
+  <video id="splashVideo" src="/exit.mp4" autoplay muted style="width:100vw;height:100vh;object-fit:cover;"></video>
+</div>
+<div class="container" id="loginContainer" style="display:none; opacity:0;">
+  <div class="left-side">
+    <img src="logo.png" alt="OSLAM InfoBill Logo" class="logo">
+    <h1>OSLAM InfoBill</h1>
+    <p>Manage outpatient records and billing efficiently.  
+    Secure access ensures patient data is always safe and easily available for authorized staff.</p>
+  </div>
+  <div class="right-side">
+    <h1>Sign in</h1>
+    <p class="subtitle">Enter your credentials to access outpatient information and billing.</p>
+    <% if (typeof error !== 'undefined' && error) { %>
+      <div class="error-message" style="background:#fee;color:#c33;padding:12px 16px;border-radius:8px;font-size:14px;margin-bottom:20px;border:1px solid #fcc;">
+        <%= error %>
+      </div>
+    <% } %>
+    <% if (typeof success !== 'undefined' && success) { %>
+      <div class="success-message" style="background:#efe;color:#3a3;padding:12px 16px;border-radius:8px;font-size:14px;margin-bottom:20px;border:1px solid #cfc;display:flex;align-items:center;gap:8px;">
+        <i class="bi bi-check-circle-fill"></i>
+        <%= success %>
+      </div>
+    <% } %>
+  <form id="loginForm" action="/login" method="POST">
+      <div class="form-group">
+        <label for="username">Username</label>
+        <input type="text" id="username" name="username" placeholder="john.doe" required autofocus>
+      </div>
+      <div class="form-group">
+        <label for="password">Password</label>
+        <div class="input-wrapper">
+          <input type="password" id="password" name="password" placeholder="••••••••" required>
+          <i class="bi bi-eye password-toggle" id="togglePasswordIcon" onclick="togglePasswordVisibility()"></i>
+        </div>
+      </div>
+      <div class="forgot-password">
+        <a href="#" id="forgotPasswordLink">Forgot password?</a>
+      </div>
+      <div id="math-captcha-block">
+        <input id="captchaNum1" type="text" readonly>
+        <span style="font-size:18px;color:#7b7b7b;">+</span>
+        <input id="captchaNum2" type="text" readonly>
+        <span style="font-size:18px;color:#7b7b7b;">=</span>
+        <input id="captchaAnswer" type="number" min="0" max="99">
+        <button id="captchaRefresh" type="button"><i class="bi bi-arrow-clockwise"></i></button>
+      </div>
+      <button type="submit" class="login-btn">
+        Login
+        <i class="bi bi-arrow-right"></i>
+      </button>
+    </form>
+  </div>
+</div>
+<!-- Forgot Password Modal (moved outside login form) -->
+<style>
+  #forgotPasswordModal {
+    display: none;
+    position: fixed;
+    top: 0; left: 0;
+    width: 100vw; height: 100vh;
+    background: rgba(0,0,0,0.18);
+    z-index: 99999;
+    align-items: center;
+    justify-content: center;
+    overflow: auto;
+  }
+  #forgotPasswordModal.active {
+    display: flex !important;
+  }
+</style>
+<div id="forgotPasswordModal">
+  <div style="background:#fff;padding:32px 28px;border-radius:14px;max-width:350px;width:90vw;box-shadow:0 8px 32px rgba(0,0,0,0.12);margin:auto;display:flex;flex-direction:column;align-items:center;position:relative;">
+    <h2 style="font-size:22px;color:#0e7490;font-weight:600;margin-bottom:10px;">Forgot Password</h2>
+    <p style="font-size:15px;color:#555;margin-bottom:18px;text-align:center;">Please enter your registered email address. We'll send a secure OTP to help you continue login.</p>
+    <form id="forgotPasswordForm" method="POST" action="/forgot-password" style="width:100%;">
+      <input type="text" name="username" id="forgotUsername" placeholder="Username" required style="width:100%;padding:12px 14px;font-size:15px;border:1.5px solid #d1d5db;border-radius:8px;margin-bottom:12px;">
+      <input type="email" name="email" id="forgotEmail" placeholder="Email address" required style="width:100%;padding:12px 14px;font-size:15px;border:1.5px solid #d1d5db;border-radius:8px;margin-bottom:16px;">
+      <button type="submit" style="width:100%;padding:12px;font-size:15px;font-weight:600;color:white;background:#0891b2;border:none;border-radius:8px;cursor:pointer;">Send OTP</button>
+    </form>
+    <div id="forgotSuccessMsg" style="display:none;margin-top:16px;color:#0e7490;font-size:15px;text-align:center;"></div>
+    <button id="closeForgotModal" style="margin-top:18px;background:none;border:none;color:#0891b2;font-size:15px;cursor:pointer;">Close</button>
+  </div>
+</div>
+
+<script>
+// Fade-in animation after splash
+document.addEventListener('DOMContentLoaded', function() {
+  var splashVideo = document.getElementById('splashVideo');
+  var splashScreen = document.getElementById('splashScreen');
+  var loginContainer = document.getElementById('loginContainer');
+  function showLoginWithFade() {
+    splashScreen.style.display = 'none';
+    loginContainer.style.display = 'flex';
+    loginContainer.classList.add('fade-in');
+    loginContainer.style.opacity = '1';
+  }
+  splashVideo.onended = showLoginWithFade;
+  splashVideo.onerror = function() {
+    setTimeout(showLoginWithFade, 5000);
+  };
+});
+
+// Fade-out animation on login submit
+document.addEventListener('DOMContentLoaded', function() {
+  var loginForm = document.getElementById('loginForm');
+  var loginContainer = document.getElementById('loginContainer');
+  if (loginForm) {
+    loginForm.addEventListener('submit', function(e) {
+      // Only fade out if captcha is correct
+      const n1 = parseInt(document.getElementById('captchaNum1').value, 10);
+      const n2 = parseInt(document.getElementById('captchaNum2').value, 10);
+      const ans = parseInt(document.getElementById('captchaAnswer').value, 10);
+      if (!isNaN(ans) && ans === n1 + n2) {
+        loginContainer.classList.remove('fade-in');
+        loginContainer.classList.add('fade-out');
+      }
+    });
+  }
+});
+// (Fixed) Splash screen logic - only one handler
+// Already handled above with showLoginWithFade
+// Forgot Password Modal Logic
+document.getElementById('forgotPasswordLink').onclick = function(e) {
+  e.preventDefault();
+  var modal = document.getElementById('forgotPasswordModal');
+  modal.classList.add('active');
+  modal.focus();
+};
+document.getElementById('closeForgotModal').onclick = function(e) {
+  e.preventDefault();
+  var modal = document.getElementById('forgotPasswordModal');
+  modal.classList.remove('active');
+  document.getElementById('forgotSuccessMsg').style.display = 'none';
+  document.getElementById('forgotPasswordForm').style.display = 'block';
+};
+document.getElementById('forgotPasswordForm').addEventListener('submit', async function(e) {
+  e.preventDefault();
+  e.stopPropagation();
+  const username = document.getElementById('forgotUsername').value;
+  const email = document.getElementById('forgotEmail').value;
+  const res = await fetch('/forgot-password', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username, email })
+  });
+  const data = await res.json();
+  if (data.success) {
+    document.getElementById('forgotPasswordForm').style.display = 'none';
+    document.getElementById('forgotSuccessMsg').innerText = 'An OTP has been sent to your email. Please check your inbox and enter the code to proceed.';
+    document.getElementById('forgotSuccessMsg').style.display = 'block';
+    setTimeout(function(){ window.location.href = '/otp?username=' + encodeURIComponent(data.username); }, 2000);
+  } else {
+    document.getElementById('forgotSuccessMsg').innerText = data.error || 'Unable to send OTP. Please check your username and email address or contact support.';
+    document.getElementById('forgotSuccessMsg').style.display = 'block';
+  }
+});
+function randomInt(min,max){return Math.floor(Math.random()*(max-min+1))+min;}
+function setCaptcha(){const n1=randomInt(0,99);const n2=randomInt(0,99-n1);document.getElementById('captchaNum1').value=n1;document.getElementById('captchaNum2').value=n2;document.getElementById('captchaAnswer').value='';document.getElementById('captchaAnswer').style.borderColor='#d1d5db';}
+setCaptcha();
+document.getElementById('captchaRefresh').onclick=setCaptcha;
+document.getElementById('captchaAnswer').addEventListener('input',function(){const n1=parseInt(document.getElementById('captchaNum1').value,10);const n2=parseInt(document.getElementById('captchaNum2').value,10);const ans=parseInt(this.value,10);if(!isNaN(ans)&&ans===n1+n2){this.style.borderColor='#4caf50';}else{this.style.borderColor='#d1d5db';}});
+document.getElementById('loginForm').addEventListener('submit',function(e){
+  const n1=parseInt(document.getElementById('captchaNum1').value,10);
+  const n2=parseInt(document.getElementById('captchaNum2').value,10);
+  const ans=parseInt(document.getElementById('captchaAnswer').value,10);
+  if(isNaN(ans)||ans!==n1+n2){
+    e.preventDefault();
+    document.getElementById('captchaAnswer').style.borderColor='#f44336';
+    alert('Please solve the captcha correctly.');
+    return false;
+  }
+});
+function togglePasswordVisibility(){const p=document.getElementById('password');const t=document.getElementById('togglePasswordIcon');if(p.type==='password'){p.type='text';t.classList.remove('bi-eye');t.classList.add('bi-eye-slash');}else{p.type='password';t.classList.remove('bi-eye-slash');t.classList.add('bi-eye');}}
+</script>
+</body>
+</html>

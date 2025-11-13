@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login Success - OSLAM InfoBill</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      background: #000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    #splashScreen {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100vw; height: 100vh;
+      background: #000;
+      z-index: 99999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    #splashVideo {
+      width: 100vw;
+      height: 100vh;
+      object-fit: cover;
+    }
+  </style>
+</head>
+<body>
+  <div id="splashScreen">
+    <video id="splashVideo" src="/exit.mp4" autoplay muted></video>
+  </div>
+  <script>
+    var splashVideo = document.getElementById('splashVideo');
+    splashVideo.onended = function() {
+      window.location.href = "<%= redirectUrl %>";
+    };
+    splashVideo.onerror = function() {
+      setTimeout(function() {
+        window.location.href = "<%= redirectUrl %>";
+      }, 5000);
+    };
+  </script>
+</body>
+</html>

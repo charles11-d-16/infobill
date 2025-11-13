@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Discharged Patient Details</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+  <style>
+    /* === General Styles === */
+    body {
+      font-family: 'Inter', sans-serif;
+      background: #fff;
+      color: #000;
+      margin: 0;
+      font-size: 14px;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 20px auto;
+      padding: 20px;
+      border: 1px solid #000;
+      border-radius: 8px;
+    }
+
+    h2, h3 {
+      margin: 5px 0;
+      text-align: center;
+      font-weight: 700;
+    }
+
+    h3 {
+      font-size: 16px;
+    }
+
+    .header p {
+      margin: 2px 0;
+      text-align: center;
+      font-size: 13px;
+    }
+
+    .section-title {
+      font-weight: 600;
+      background: #eee;
+      padding: 6px 10px;
+      margin-top: 15px;
+      border: 1px solid #000;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+      margin-bottom: 20px;
+    }
+
+    table, th, td {
+      border: 1px solid #000;
+    }
+
+    th, td {
+      padding: 6px 10px;
+      text-align: left;
+      font-size: 13px;
+    }
+
+    th {
+      background-color: #f3f3f3;
+      font-weight: 600;
+    }
+
+    .signature-section {
+      margin-top: 30px;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .signature-line {
+      border-bottom: 1px solid #000;
+      width: 250px;
+      text-align: center;
+      margin-bottom: 5px;
+    }
+
+    .print-btn {
+      text-align: center;
+      margin-top: 20px;
+    }
+
+    .print-btn button {
+      background: #000;
+      color: #fff;
+      padding: 8px 20px;
+      border: none;
+      border-radius: 4px;
+      font-size: 14px;
+      cursor: pointer;
+    }
+
+    @media print {
+      .print-btn {
+        display: none;
+      }
+      body {
+        background: #fff;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <p>Republic of the Philippines</p>
+      <p>Province of Nueva Ecija</p>
+      <p>Science City of Muñoz</p>
+      <h3>OSPITAL NG LUNGSOD AGHAM NG MUÑOZ</h3>
+      <p>(Primary Care Facility – Infirmary)</p>
+    </div>
+
+    <h2>ADMISSION AND DISCHARGE RECORD</h2>
+
+    <div class="section-title">Patient Information</div>
+    <table>
+      <tr>
+        <th>HRN</th>
+        <td><%= patient.hrn %></td>
+        <th>Full Name</th>
+        <td><%= patient.fullName %></td>
+      </tr>
+      <tr>
+        <th>Age</th>
+        <td><%= patient.age %></td>
+        <th>Gender</th>
+        <td><%= patient.gender %></td>
+      </tr>
+      <tr>
+        <th>Address</th>
+        <td><%= patient.address %></td>
+        <th>Civil Status</th>
+        <td><%= patient.civilStatus %></td>
+      </tr>
+      <tr>
+        <th>PhilHealth No.</th>
+        <td><%= patient.philhealthNo %></td>
+        <th>Birthday</th>
+        <td><%= patient.birthday ? (new Date(patient.birthday).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' })) : '' %></td>
+      </tr>
+      <tr>
+        <th>Religion</th>
+        <td><%= patient.religion %></td>
+        <th>Allergic To</th>
+        <td><%= patient.allergicTo %></td>
+      </tr>
+    </table>
+
+    <div class="section-title">Admission & Discharge</div>
+    <table>
+      <tr>
+        <th>Admitted By</th>
+        <td><%= patient.admittedBy %></td>
+        <th>Admission Date</th>
+        <td><%= patient.admittedAt %></td>
+      </tr>
+      <tr>
+        <th>Discharged By</th>
+        <td><%= patient.dischargedBy %></td>
+        <th>Discharge Date</th>
+        <td><%= patient.dischargedAt %></td>
+      </tr>
+      <tr>
+        <th>Total Days</th>
+        <td><%= patient.totalDays %></td>
+        <th>Attending Physician</th>
+        <td><%= patient.physician %></td>
+      </tr>
+      <tr>
+        <th>Nurse</th>
+        <td><%= patient.nurse %></td>
+        <th>Admitting Diagnosis</th>
+        <td><%= patient.admittingDiagnosis %></td>
+      </tr>
+      <tr>
+        <th>Final Diagnosis</th>
+        <td><%= patient.finalDiagnosis %></td>
+        <th>Operation/Procedure</th>
+        <td><%= patient.operation %></td>
+      </tr>
+      <tr>
+        <th>ICD 10 Code</th>
+        <td><%= patient.icd10 %></td>
+        <th>PRC License</th>
+        <td><%= patient.prcLicense %></td>
+      </tr>
+    </table>
+
+    <div class="section-title">Other Information</div>
+    <table>
+      <tr>
+        <th>Social Service</th>
+        <td><%= patient.socialService %></td>
+        <th>Disposition</th>
+        <td><%= patient.disposition %></td>
+      </tr>
+      <tr>
+        <th>Results</th>
+        <td><%= patient.results %></td>
+        <th>Place of Occurrence</th>
+        <td><%= patient.placeOfOccurrence %></td>
+      </tr>
+      <tr>
+        <th>Transferred To</th>
+        <td><%= patient.transferredTo %></td>
+        <td></td>
+        <td></td>
+      </tr>
+    </table>
+
+    <div class="signature-section">
+      <div>
+        <div class="signature-line"></div>
+        <div>Printed Name & Signature of Attending Physician</div>
+      </div>
+      <div>
+        <div class="signature-line"></div>
+        <div>Date</div>
+      </div>
+    </div>
+
+    <div class="print-btn">
+      <button onclick="window.print()">Print</button>
+    </div>
+  </div>
+</body>
+</html>
