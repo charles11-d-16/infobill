@@ -1,11 +1,11 @@
 const nodemailer = require('nodemailer');
 
-// Configure your SMTP transport (use your real credentials)
+// Configure your SMTP transport using environment variables
 const transporter = nodemailer.createTransport({
   service: 'gmail',
   auth: {
-    user: 'raycharlesvalino1993@gmail.com',
-    pass: 'posgcqddgymlmivv'
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS
   }
 });
 
