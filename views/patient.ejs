@@ -404,6 +404,10 @@
       <div class="preview-item"><strong>Heart Rate:</strong> <span id="prevHR">-</span></div>
       <div class="preview-item"><strong>Temperature:</strong> <span id="prevTemp">-</span></div>
       <div class="preview-item"><strong>SpO₂:</strong> <span id="prevSpO2">-</span></div>
+      <div class="preview-item"><strong>RR:</strong> <span id="prevRR">-</span></div>
+      <div class="preview-item"><strong>Height:</strong> <span id="prevHeight">-</span></div>
+      <div class="preview-item"><strong>Weight:</strong> <span id="prevWeight">-</span></div>
+      <div class="preview-item"><strong>LMP (Last Menstrual Period):</strong> <span id="prevLMP">-</span></div>
     </div>
   </div>
   <script>
@@ -443,11 +447,21 @@
     const spo2Input = document.getElementById("spo2");
     const spo2Icon = document.getElementById("spo2Icon");
 
+    // New vital inputs for preview
+    const rrInput = document.querySelector('input[name="rr"]');
+    const heightInput = document.querySelector('input[name="height"]');
+    const weightInput = document.querySelector('input[name="weight"]');
+    const lmpInput = document.querySelector('input[name="lmp"]');
+
     const prevName = document.getElementById("prevName");
     const prevBP = document.getElementById("prevBP");
     const prevHR = document.getElementById("prevHR");
     const prevTemp = document.getElementById("prevTemp");
     const prevSpO2 = document.getElementById("prevSpO2");
+    const prevRR = document.getElementById("prevRR");
+    const prevHeight = document.getElementById("prevHeight");
+    const prevWeight = document.getElementById("prevWeight");
+    const prevLMP = document.getElementById("prevLMP");
 
     const nameFields = [document.getElementById("firstName"), document.getElementById("middleInitial"), document.getElementById("lastName")];
 
@@ -457,6 +471,10 @@
       prevHR.textContent = hrInput.value || "-";
       prevTemp.textContent = tempInput.value || "-";
       prevSpO2.textContent = spo2Input.value || "-";
+      prevRR.textContent = rrInput && rrInput.value ? rrInput.value : "-";
+      prevHeight.textContent = heightInput && heightInput.value ? heightInput.value : "-";
+      prevWeight.textContent = weightInput && weightInput.value ? weightInput.value : "-";
+      prevLMP.textContent = lmpInput && lmpInput.value ? lmpInput.value : "-";
     }
 
     function updateIconColor(input, icon, type) {
@@ -476,6 +494,10 @@
       if (bpInput) bpInput.addEventListener("input", function() { updatePreview(); updateIconColor(bpInput, bpIcon, "bp"); });
       if (spo2Input) spo2Input.addEventListener("input", function() { updatePreview(); updateIconColor(spo2Input, spo2Icon, "spo2"); });
       nameFields.forEach(el => { if (el) el.addEventListener("input", updatePreview); });
+      if (rrInput) rrInput.addEventListener("input", updatePreview);
+      if (heightInput) heightInput.addEventListener("input", updatePreview);
+      if (weightInput) weightInput.addEventListener("input", updatePreview);
+      if (lmpInput) lmpInput.addEventListener("input", updatePreview);
     }
     attachVitalListeners();
     updatePreview();
