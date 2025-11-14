@@ -1,8 +1,9 @@
 const nodemailer = require('nodemailer');
 
-// Configure your SMTP transport using environment variables
+// Configure Brevo SMTP transport using environment variables
 const transporter = nodemailer.createTransport({
-  service: 'gmail',
+  host: process.env.EMAIL_HOST || 'smtp-relay.brevo.com',
+  port: process.env.EMAIL_PORT ? parseInt(process.env.EMAIL_PORT, 10) : 587,
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS
