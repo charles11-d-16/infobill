@@ -286,7 +286,7 @@ router.post('/emergency/charge-slip', async (req, res) => {
     transactionId: uuidv4().slice(0, 8).toUpperCase(),
     admissionId,
     patientId,
-    categoryId,
+   categoryId: categoryId ? categoryId : undefined,
     services
   };
 
