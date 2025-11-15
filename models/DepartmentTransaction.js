@@ -4,7 +4,7 @@ const departmentTransactionSchema = new mongoose.Schema({
   categoryId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'DepartmentCategory',
-    required: true
+    required: false
   },
   transactions: [
     {
