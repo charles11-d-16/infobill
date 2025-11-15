@@ -213,6 +213,7 @@ router.post('/cashier/verify-payment', async (req, res) => {
   if (typeof amountReceived !== 'undefined') paymentDoc.amountReceived = amountReceived;
   if (typeof changeGiven !== 'undefined') paymentDoc.changeGiven = changeGiven;
   if (Array.isArray(services)) paymentDoc.services = services;
+  paymentDoc.orNumber = orNumber; // Save OR number to Payment document
   await paymentDoc.save();
 
         // If a promissory was used for this payment, mark it as settled so it won't apply to future admissions
