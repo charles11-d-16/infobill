@@ -43,7 +43,9 @@ const paymentSchema = new mongoose.Schema({
   // Amount received and change
   amountReceived: { type: Number, default: 0 },
   changeGiven: { type: Number, default: 0 },
-
+  
+  // Official Receipt Number
+  orNumber: { type: String },
   // Audit
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now }
