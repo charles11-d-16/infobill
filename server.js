@@ -1454,13 +1454,14 @@ io.on('connection', (socket) => {
 });
 
 // Start server with PORT env override and auto-fallback if port is in use
+const host = process.env.HOST
 let currentPort = parseInt(process.env.PORT, 10);
 let retries = 0;
 const MAX_RETRIES = 5;
 
 function listen(port) {
   server.listen(port, () => {
-    console.log(`Server running on http://localhost:${port}`);
+    console.log(`App running on http://${host}:${port}`);
   });
 }
 
