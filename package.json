@@ -4,8 +4,7 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node server.js",
-    "dev": "node --watch -r dotenv-flow/config server.js"
+    "start": "node server.js"
   },
   "keywords": [],
   "author": "",
@@ -26,8 +25,5 @@
     "speakeasy": "^2.0.0",
     "uuid": "^11.1.0"
   },
-  "description": "",
-  "devDependencies": {
-    "dotenv-flow": "^4.1.0"
-  }
+  "description": ""
 }
