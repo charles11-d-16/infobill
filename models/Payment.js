@@ -5,7 +5,7 @@ const paymentSchema = new mongoose.Schema({
   transactionIds: [{ type: String, required: true }],
   // Admission scope for this payment
   admissionNumber: { type: String },
-  
+
   // Financial breakdown
   subtotal: { type: Number, required: true },
   discountTypes: [{ type: String }], // ['Senior Citizen', 'PWD', 'Resident Citizen']
@@ -14,45 +14,46 @@ const paymentSchema = new mongoose.Schema({
   promissoryId: { type: mongoose.Schema.Types.ObjectId, ref: 'Promissory' },
   promissoryAmount: { type: Number, default: 0 },
   finalTotal: { type: Number, required: true },
-  
+
   // Payment metadata
   billNumber: { type: String, required: true },
   paymentDate: { type: Date },
   processedBy: { type: String }, // Cashier name/ID
-  status: { 
-    type: String, 
+  status: {
+    type: String,
     enum: ['Pending', 'Paid', 'Partially Paid', 'Cancelled'],
-    default: 'Pending'
+    default: 'Pending',
   },
-  
+
   // Patient info snapshot (for historical records)
   patientName: { type: String },
   patientHRN: { type: String },
-  
 
   // Transaction details (what patient bought)
-  services: [{
-    ref: Number,
-    transactionType: String,
-    description: String,
-    qty: Number,
-    unitPrice: Number,
-    amount: Number
-  }],
+  services: [
+    {
+      ref: Number,
+      transactionType: String,
+      description: String,
+      qty: Number,
+      unitPrice: Number,
+      amount: Number,
+    },
+  ],
 
   // Amount received and change
   amountReceived: { type: Number, default: 0 },
   changeGiven: { type: Number, default: 0 },
-  
+
   // Official Receipt Number
   orNumber: { type: String },
   // Audit
   createdAt: { type: Date, default: Date.now },
-  updatedAt: { type: Date, default: Date.now }
+  updatedAt: { type: Date, default: Date.now },
 });
 
 // Update the updatedAt timestamp before saving
-paymentSchema.pre('save', function(next) {
+paymentSchema.pre('save', function (next) {
   this.updatedAt = Date.now();
   next();
 });

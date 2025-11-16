@@ -40,7 +40,7 @@ router.post('/login', async (req, res) => {
       recordType: 'Staff',
       recordId: staff.staffId,
       timestamp: new Date(),
-      details: { category: staff.category, email: staff.emailAddress }
+      details: { category: staff.category, email: staff.emailAddress },
     });
   } catch (e) {
     console.error('Audit log error:', e);
@@ -53,32 +53,34 @@ router.post('/login', async (req, res) => {
     'Emergency Department': '/emergencydashboard',
     'Billing': '/billingdashboard',
     'Cashier': '/cashierdashboard',
-    'Admin': '/dashboard'
+    'Admin': '/dashboard',
   };
-    // Generate OTP
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    req.session.otp = otp;
-    req.session.otpExpires = Date.now() + 5 * 60 * 1000; // 5 minutes
+  // Generate OTP
+  const otp = Math.floor(100000 + Math.random() * 900000).toString();
+  req.session.otp = otp;
+  req.session.otpExpires = Date.now() + 5 * 60 * 1000; // 5 minutes
 
-    // Send OTP to user's email
-    const transporter = require('../utils/mailer');
-    try {
-      await transporter.sendMail({
-        from: process.env.MAIL_FROM_ADDRESS,
-        to: staff.emailAddress,
-        subject: 'Your OsLAMIB Login OTP',
-        text: `Your OTP code is: ${otp}`
-      });
-    } catch (e) {
-      console.error('Error sending OTP email:', e);
-      // Optionally, you can show an error message on the OTP page
-      return res.render('otp', { username: staff.username, error: 'Failed to send OTP email. Please contact support.' });
-    }
+  // Send OTP to user's email
+  const transporter = require('../utils/mailer');
+  try {
+    await transporter.sendMail({
+      from: process.env.MAIL_FROM_ADDRESS,
+      to: staff.emailAddress,
+      subject: 'Your OsLAMIB Login OTP',
+      text: `Your OTP code is: ${otp}`,
+    });
+  } catch (e) {
+    console.error('Error sending OTP email:', e);
+    // Optionally, you can show an error message on the OTP page
+    return res.render('otp', {
+      username: staff.username,
+      error: 'Failed to send OTP email. Please contact support.',
+    });
+  }
 
-    // Show OTP input page after successful login
-    res.render('otp', { username: staff.username });
+  // Show OTP input page after successful login
+  res.render('otp', { username: staff.username });
 });
-
 
 // OTP page for forgot password flow
 router.get('/otp', (req, res) => {
@@ -114,7 +116,7 @@ router.post('/forgot-password', async (req, res) => {
       from: process.env.MAIL_FROM_ADDRESS,
       to: staff.emailAddress,
       subject: 'OSLAM InfoBill Login OTP',
-      text: `Your login OTP code is: ${otp}`
+      text: `Your login OTP code is: ${otp}`,
     });
   } catch (e) {
     console.error('Error sending OTP email:', e);
@@ -143,7 +145,10 @@ router.post('/verify-otp', async (req, res) => {
   // Find staff by username and email (from session)
   const staff = await Staff.findOne({ username: username, emailAddress: req.session.emailAddress });
   if (!staff) {
-    return res.render('otp', { username, error: 'User not found or email mismatch. Please contact support.' });
+    return res.render('otp', {
+      username,
+      error: 'User not found or email mismatch. Please contact support.',
+    });
   }
   req.session.userId = staff.staffId;
   req.session.username = staff.username;
@@ -158,10 +163,10 @@ router.post('/verify-otp', async (req, res) => {
     'Emergency Department': '/emergencydashboard',
     'Billing': '/billingdashboard',
     'Cashier': '/cashierdashboard',
-    'Admin': '/dashboard'
+    'Admin': '/dashboard',
   };
   const redirectUrl = redirectMap[staff.category] || '/dashboard';
-  req.session.save(err => {
+  req.session.save((err) => {
     if (err) {
       return res.render('otp', { username, error: 'Session error. Please try again.' });
     }

@@ -11,8 +11,14 @@ async function generateHRN() {
   const prefix = `${yy}-00-00-`;
 
   // Find the most recent patient and on-hold with this prefix and take the highest suffix
-  const lastPatient = await Patient.findOne({ patientId: { $regex: `^${prefix}` } }).sort({ patientId: -1 }).exec().catch(()=>null);
-  const lastOnHold = await OnHold.findOne({ tempId: { $regex: `^${prefix}` } }).sort({ tempId: -1 }).exec().catch(()=>null);
+  const lastPatient = await Patient.findOne({ patientId: { $regex: `^${prefix}` } })
+    .sort({ patientId: -1 })
+    .exec()
+    .catch(() => null);
+  const lastOnHold = await OnHold.findOne({ tempId: { $regex: `^${prefix}` } })
+    .sort({ tempId: -1 })
+    .exec()
+    .catch(() => null);
 
   let lastSeq = 0;
   if (lastPatient && lastPatient.patientId) {
@@ -42,14 +48,14 @@ router.get('/onhold', async (req, res) => {
       success,
       error,
       hrn,
-      regDate
+      regDate,
     });
   } catch (err) {
     console.error('Error loading /onhold page:', err);
     res.render('onhold', {
       error: 'Something went wrong while loading the form.',
       success: null,
-      hrn: await generateHRN()
+      hrn: await generateHRN(),
     });
   }
 });
@@ -57,19 +63,13 @@ router.get('/onhold', async (req, res) => {
 // POST /onhold - process unidentified patient registration
 router.post('/onhold', async (req, res) => {
   try {
-    const {
-      estimateAge,
-      clothes,
-      locationFound,
-      status,
-      dateTimeFound
-    } = req.body;
+    const { estimateAge, clothes, locationFound, status, dateTimeFound } = req.body;
 
     // Generate tempId (HRN) that maintains sequence with regular patients
     const tempId = await generateHRN();
 
     // Convert status to array if it's a single value
-    const statusArray = Array.isArray(status) ? status : (status ? [status] : []);
+    const statusArray = Array.isArray(status) ? status : status ? [status] : [];
 
     const newOnHold = new OnHold({
       tempId,
@@ -77,7 +77,7 @@ router.post('/onhold', async (req, res) => {
       clothes,
       dateTimeFound: dateTimeFound || moment().format('YYYY-MM-DD HH:mm:ss'),
       locationFound,
-      status: statusArray
+      status: statusArray,
     });
 
     // Attempt save, retrying HRN generation if unique constraint collides
@@ -122,7 +122,7 @@ router.post('/onhold', async (req, res) => {
       height: '',
       weight: '',
       lmp: undefined,
-      registrationDate: dateTimeFound ? new Date(dateTimeFound) : new Date()
+      registrationDate: dateTimeFound ? new Date(dateTimeFound) : new Date(),
     });
 
     await newPatient.save();
@@ -132,15 +132,14 @@ router.post('/onhold', async (req, res) => {
     res.render('onhold', {
       success: `Successfully registered unidentified patient with HRN: ${newOnHold.tempId}`,
       hrn: nextHrn,
-      regDate: moment().format('YYYY-MM-DD HH:mm:ss')
+      regDate: moment().format('YYYY-MM-DD HH:mm:ss'),
     });
-
   } catch (err) {
     console.error('Error saving unidentified patient:', err);
     res.render('onhold', {
       error: 'Error saving unidentified patient data',
       success: null,
-      hrn: await generateHRN()
+      hrn: await generateHRN(),
     });
   }
 });
@@ -151,11 +150,7 @@ router.get('/search-patient', async (req, res) => {
   const regex = new RegExp(query, 'i');
   try {
     const patients = await Patient.find({
-      $or: [
-        { patientId: regex },
-        { firstName: regex },
-        { lastName: regex }
-      ]
+      $or: [{ patientId: regex }, { firstName: regex }, { lastName: regex }],
     });
     res.json(patients);
   } catch (err) {

@@ -12,19 +12,22 @@ const Receipt = require('../models/Receipt');
 router.get('/cashier', async (req, res) => {
   try {
     // Find all transactions with status "Billing Confirmed"
-    const confirmedTransactions = await Transaction.find({ status: 'Billing Confirmed' }).distinct('patientId');
+    const confirmedTransactions = await Transaction.find({ status: 'Billing Confirmed' }).distinct(
+      'patientId',
+    );
 
     // Populate patient details
     const patientsWithConfirmedBilling = [];
     for (const patientId of confirmedTransactions) {
       const patient = await Patient.findById(patientId);
-      
+
       if (patient) {
         patientsWithConfirmedBilling.push({
           patientId: patient._id,
           hrn: patient.patientId,
-          fullName: `${patient.firstName} ${patient.middleInitial || ''} ${patient.lastName}`.trim(),
-          birthday: patient.birthDate
+          fullName:
+            `${patient.firstName} ${patient.middleInitial || ''} ${patient.lastName}`.trim(),
+          birthday: patient.birthDate,
         });
       }
     }
@@ -41,7 +44,11 @@ router.get('/cashier', async (req, res) => {
       .sort({ createdAt: -1 })
       .limit(50);
 
-    res.render('cashier', { patients: patientsWithConfirmedBilling, cashierPayments: cashierPayments, pendingPayments });
+    res.render('cashier', {
+      patients: patientsWithConfirmedBilling,
+      cashierPayments: cashierPayments,
+      pendingPayments,
+    });
   } catch (err) {
     console.error(err);
     res.status(500).send('Error loading cashier');
@@ -75,12 +82,14 @@ router.get('/cashier/invoice/:patientId', async (req, res) => {
     }
 
     // Find admission record for this patient
-    const admission = await Admission.findOne({ patientId: patient.patientId }).sort({ dateAdmitted: -1 });
+    const admission = await Admission.findOne({ patientId: patient.patientId }).sort({
+      dateAdmitted: -1,
+    });
 
     // Get all transactions with "Billing Confirmed" status for this patient
-    const transactions = await Transaction.find({ 
-      patientId, 
-      status: 'Billing Confirmed' 
+    const transactions = await Transaction.find({
+      patientId,
+      status: 'Billing Confirmed',
     }).sort({ createdAt: 1 });
 
     if (transactions.length === 0) {
@@ -88,36 +97,38 @@ router.get('/cashier/invoice/:patientId', async (req, res) => {
     }
 
     // Get the saved Payment record
-    const transactionIds = transactions.map(tx => tx.transactionId);
-    const payment = await Payment.findOne({ 
+    const transactionIds = transactions.map((tx) => tx.transactionId);
+    const payment = await Payment.findOne({
       patientId,
       transactionIds: { $in: transactionIds },
-      status: 'Pending'
+      status: 'Pending',
     }).sort({ createdAt: -1 });
 
     // Build services list with reference numbers
     const servicesList = [];
     let refCounter = 1;
-    
-    transactions.forEach(tx => {
-      tx.services.forEach(service => {
+
+    transactions.forEach((tx) => {
+      tx.services.forEach((service) => {
         const qty = service.qty || 1;
         const totalAmount = service.amount || 0;
         const unitPrice = qty > 0 ? totalAmount / qty : totalAmount;
-        
+
         servicesList.push({
           ref: refCounter++,
           transactionType: service.type,
           description: service.description,
           qty: qty,
           unitPrice: unitPrice,
-          amount: totalAmount
+          amount: totalAmount,
         });
       });
     });
 
     // Use saved payment data or calculate fallback
-    const subtotal = payment ? payment.subtotal : servicesList.reduce((sum, s) => sum + s.amount, 0);
+    const subtotal = payment
+      ? payment.subtotal
+      : servicesList.reduce((sum, s) => sum + s.amount, 0);
     const discountTypes = payment ? payment.discountTypes : [];
     const discountRate = payment ? payment.discountRate : 0;
     const discountAmount = payment ? payment.discountAmount : 0;
@@ -134,7 +145,9 @@ router.get('/cashier/invoice/:patientId', async (req, res) => {
     }
 
     // Generate bill number (you can customize this)
-    const billNumber = payment ? payment.billNumber : `${new Date().getFullYear()}-${String(Math.floor(Math.random() * 99999)).padStart(5, '0')}`;
+    const billNumber = payment
+      ? payment.billNumber
+      : `${new Date().getFullYear()}-${String(Math.floor(Math.random() * 99999)).padStart(5, '0')}`;
 
     // Generate OR Number for the receipt
     const orNumber = await Receipt.generateORNumber();
@@ -155,7 +168,7 @@ router.get('/cashier/invoice/:patientId', async (req, res) => {
       processedBy: req.session && req.session.user ? req.session.user.username : 'Cashier',
       currentDate: new Date(),
       transactionIds: transactionIds,
-      paymentId: payment ? payment._id : null
+      paymentId: payment ? payment._id : null,
     });
   } catch (err) {
     console.error(err);
@@ -165,12 +178,12 @@ router.get('/cashier/invoice/:patientId', async (req, res) => {
 
 // POST /cashier/verify-payment - Update transaction status to "Payment Verified" and mark payment as paid
 router.post('/cashier/verify-payment', async (req, res) => {
-  const { 
-    transactionIds, 
-    paymentId, 
-    processedBy, 
-    amountReceived, 
-    changeGiven, 
+  const {
+    transactionIds,
+    paymentId,
+    processedBy,
+    amountReceived,
+    changeGiven,
     orNumber,
     services,
     patientHRN,
@@ -182,7 +195,7 @@ router.post('/cashier/verify-payment', async (req, res) => {
     discountAmount,
     promissoryAmount,
     finalTotal,
-    admissionNumber
+    admissionNumber,
   } = req.body;
 
   try {
@@ -197,7 +210,7 @@ router.post('/cashier/verify-payment', async (req, res) => {
     // Update all transactions to "Payment Verified"
     await Transaction.updateMany(
       { transactionId: { $in: transactionIds } },
-      { $set: { status: 'Payment Verified' } }
+      { $set: { status: 'Payment Verified' } },
     );
 
     let cashierPaymentId = null;
@@ -207,14 +220,14 @@ router.post('/cashier/verify-payment', async (req, res) => {
       // Fetch payment first to ensure we have snapshot fields
       const paymentDoc = await Payment.findById(paymentId);
       if (paymentDoc) {
-  paymentDoc.status = 'Paid';
-  paymentDoc.paymentDate = new Date();
-  paymentDoc.processedBy = processedBy || 'Cashier';
-  if (typeof amountReceived !== 'undefined') paymentDoc.amountReceived = amountReceived;
-  if (typeof changeGiven !== 'undefined') paymentDoc.changeGiven = changeGiven;
-  if (Array.isArray(services)) paymentDoc.services = services;
-  paymentDoc.orNumber = orNumber; // Save OR number to Payment document
-  await paymentDoc.save();
+        paymentDoc.status = 'Paid';
+        paymentDoc.paymentDate = new Date();
+        paymentDoc.processedBy = processedBy || 'Cashier';
+        if (typeof amountReceived !== 'undefined') paymentDoc.amountReceived = amountReceived;
+        if (typeof changeGiven !== 'undefined') paymentDoc.changeGiven = changeGiven;
+        if (Array.isArray(services)) paymentDoc.services = services;
+        paymentDoc.orNumber = orNumber; // Save OR number to Payment document
+        await paymentDoc.save();
 
         // If a promissory was used for this payment, mark it as settled so it won't apply to future admissions
         if (paymentDoc.promissoryId) {
@@ -222,8 +235,8 @@ router.post('/cashier/verify-payment', async (req, res) => {
             await Promissory.findByIdAndUpdate(paymentDoc.promissoryId, {
               $set: {
                 status: 'Settled',
-                settledAt: new Date()
-              }
+                settledAt: new Date(),
+              },
             });
           } catch (e) {
             console.warn('Failed to settle promissory:', e && e.message ? e.message : e);
@@ -245,7 +258,7 @@ router.post('/cashier/verify-payment', async (req, res) => {
           processedBy: processedBy || 'Cashier',
           patientName: paymentDoc.patientName,
           patientHRN: paymentDoc.patientHRN,
-          paymentMethod: 'Cash'
+          paymentMethod: 'Cash',
         });
         await cashierPayment.save();
         cashierPaymentId = cashierPayment._id;
@@ -271,7 +284,7 @@ router.post('/cashier/verify-payment', async (req, res) => {
           changeGiven: changeGiven,
           processedBy: processedBy || 'Cashier',
           receiptDate: new Date(),
-          admissionNumber: admissionNumber
+          admissionNumber: admissionNumber,
         });
         await receipt.save();
       }
@@ -284,7 +297,6 @@ router.post('/cashier/verify-payment', async (req, res) => {
   }
 });
 
-
 // GET /cashier/receipt/:paymentId - Show receipt for processed payment
 router.get('/cashier/receipt/:paymentId', async (req, res) => {
   try {
@@ -294,7 +306,9 @@ router.get('/cashier/receipt/:paymentId', async (req, res) => {
       return res.status(404).send('Receipt not found');
     }
     const patient = receipt.patientId;
-    const admission = await Admission.findOne({ patientId: patient.patientId }).sort({ dateAdmitted: -1 });
+    const admission = await Admission.findOne({ patientId: patient.patientId }).sort({
+      dateAdmitted: -1,
+    });
 
     // Calculate age if birthDate is available
     let age = '';
@@ -326,14 +340,13 @@ router.get('/cashier/receipt/:paymentId', async (req, res) => {
       transactionIds: receipt.transactionIds || [],
       paymentId: receipt.paymentId,
       amountReceived: receipt.amountReceived,
-      changeGiven: receipt.changeGiven
+      changeGiven: receipt.changeGiven,
     });
   } catch (err) {
     console.error(err);
     res.status(500).send('Error loading receipt');
   }
 });
-
 
 // GET /cashier/process-receipt/:paymentId - Show processed receipt for payment
 router.get('/cashier/process-receipt/:paymentId', async (req, res) => {
@@ -344,7 +357,9 @@ router.get('/cashier/process-receipt/:paymentId', async (req, res) => {
       return res.status(404).send('Receipt not found');
     }
     const patient = payment.patientId;
-    const admission = await Admission.findOne({ patientId: patient.patientId }).sort({ dateAdmitted: -1 });
+    const admission = await Admission.findOne({ patientId: patient.patientId }).sort({
+      dateAdmitted: -1,
+    });
 
     // Calculate age if birthDate is available
     let age = '';
@@ -376,7 +391,7 @@ router.get('/cashier/process-receipt/:paymentId', async (req, res) => {
       transactionIds: payment.transactionIds || [],
       paymentId: payment._id,
       amountReceived: payment.amountReceived,
-      changeGiven: payment.changeGiven
+      changeGiven: payment.changeGiven,
     });
   } catch (err) {
     console.error(err);

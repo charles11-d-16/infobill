@@ -15,8 +15,8 @@ router.get('/billing', async (req, res) => {
     const billingData = await Transaction.aggregate([
       {
         $match: {
-          status: { $ne: 'Payment Verified' } // Exclude transactions that have been paid
-        }
+          status: { $ne: 'Payment Verified' }, // Exclude transactions that have been paid
+        },
       },
       {
         $group: {
@@ -27,26 +27,26 @@ router.get('/billing', async (req, res) => {
               $reduce: {
                 input: '$services',
                 initialValue: 0,
-                in: { $add: ['$$value', '$$this.amount'] }
-              }
-            }
+                in: { $add: ['$$value', '$$this.amount'] },
+              },
+            },
           },
-          latestDate: { $max: '$createdAt' }
-        }
+          latestDate: { $max: '$createdAt' },
+        },
       },
-      { $sort: { latestDate: -1 } }
+      { $sort: { latestDate: -1 } },
     ]);
 
     // Populate patient details
     const patientsWithBilling = [];
     for (const billing of billingData) {
       const patient = await Patient.findById(billing._id);
-      
+
       if (patient) {
         // Get the latest promissory for this patient (regardless of paid status)
-        const promissory = await Promissory.findOne({ 
+        const promissory = await Promissory.findOne({
           patientId: patient.patientId || patient.tempId,
-          status: { $in: ['Pending', 'Approved', 'Rejected', 'Settled'] }
+          status: { $in: ['Pending', 'Approved', 'Rejected', 'Settled'] },
         }).sort({ dateIssued: -1 });
 
         // Compute covered amount (promissory amount) if promissory is approved
@@ -58,11 +58,12 @@ router.get('/billing', async (req, res) => {
         if (promissory && promissory.status === 'Rejected') {
           rejectionReason = promissory.rejectionReason || 'No reason provided';
         }
-        
+
         patientsWithBilling.push({
           patientId: billing._id,
           hrn: patient.patientId,
-          fullName: `${patient.firstName} ${patient.middleInitial || ''} ${patient.lastName}`.trim(),
+          fullName:
+            `${patient.firstName} ${patient.middleInitial || ''} ${patient.lastName}`.trim(),
           birthday: patient.birthDate,
           transactionCount: billing.transactionCount,
           totalAmount: billing.totalAmount,
@@ -70,7 +71,7 @@ router.get('/billing', async (req, res) => {
           promissoryStatus: promissory ? promissory.status : null,
           covered,
           rejectionReason,
-          promissoryImage: promissory && promissory.imagePath ? promissory.imagePath : null
+          promissoryImage: promissory && promissory.imagePath ? promissory.imagePath : null,
         });
       }
     }
@@ -99,15 +100,15 @@ router.get('/billing/view/:patientId', async (req, res) => {
     }
 
     // Only fetch transactions that haven't been paid yet
-    const transactions = await Transaction.find({ 
+    const transactions = await Transaction.find({
       patientId,
-      status: { $ne: 'Payment Verified' }
+      status: { $ne: 'Payment Verified' },
     }).sort({ createdAt: -1 });
 
     // Calculate grand total
     let grandTotal = 0;
-    transactions.forEach(tx => {
-      tx.services.forEach(service => {
+    transactions.forEach((tx) => {
+      tx.services.forEach((service) => {
         grandTotal += service.amount || 0;
       });
     });
@@ -130,35 +131,35 @@ router.get('/billing/print/:patientId', async (req, res) => {
     }
 
     // Find admission record for this patient
-    const admission = await Admission.findOne({ 
-      patientId: patient.patientId || patient.tempId 
+    const admission = await Admission.findOne({
+      patientId: patient.patientId || patient.tempId,
     }).sort({ dateAdmitted: -1 });
 
     // Get all transactions for this patient that haven't been paid yet
-    const transactions = await Transaction.find({ 
+    const transactions = await Transaction.find({
       patientId,
-      status: { $ne: 'Payment Verified' }
+      status: { $ne: 'Payment Verified' },
     }).sort({ createdAt: 1 });
 
     // Build services list with reference numbers
     const servicesList = [];
     let refCounter = 1;
     const transactionIds = [];
-    
-    transactions.forEach(tx => {
+
+    transactions.forEach((tx) => {
       transactionIds.push(tx.transactionId);
-      tx.services.forEach(service => {
+      tx.services.forEach((service) => {
         const qty = service.qty || 1;
         const totalAmount = service.amount || 0;
         const unitPrice = qty > 0 ? totalAmount / qty : totalAmount;
-        
+
         servicesList.push({
           ref: refCounter++,
           transactionType: service.type,
           description: service.description,
           qty: qty,
           unitPrice: unitPrice,
-          amount: totalAmount
+          amount: totalAmount,
         });
       });
     });
@@ -167,14 +168,23 @@ router.get('/billing/print/:patientId', async (req, res) => {
     const subtotal = servicesList.reduce((sum, s) => sum + s.amount, 0);
 
     // Get approved promissory for this patient's current admission (1 promissory = 1 admission)
-    const promissory = await Promissory.findOne({ 
+    const promissory = await Promissory.findOne({
       patientId: patient.patientId || patient.tempId,
       status: 'Approved',
-      admissionNumber: admission ? admission.admissionNumber : null
+      admissionNumber: admission ? admission.admissionNumber : null,
     }).sort({ dateApproved: -1 });
 
     const promissoryAmount = promissory ? promissory.amount : 0;
-    console.log('Patient HRN:', patient.patientId || patient.tempId, 'Admission:', admission ? admission.admissionNumber : 'N/A', 'Promissory:', promissory, 'Amount:', promissoryAmount);
+    console.log(
+      'Patient HRN:',
+      patient.patientId || patient.tempId,
+      'Admission:',
+      admission ? admission.admissionNumber : 'N/A',
+      'Promissory:',
+      promissory,
+      'Amount:',
+      promissoryAmount,
+    );
 
     // Calculate age from birthDate
     const today = new Date();
@@ -194,7 +204,7 @@ router.get('/billing/print/:patientId', async (req, res) => {
       const existingPayment = await Payment.findOne({
         patientId: patient._id,
         status: 'Pending',
-        transactionIds: { $in: transactionIds }
+        transactionIds: { $in: transactionIds },
       }).sort({ createdAt: -1 });
       hasPendingPayment = !!existingPayment;
     } catch (e) {
@@ -211,7 +221,7 @@ router.get('/billing/print/:patientId', async (req, res) => {
       currentDate: new Date(),
       transactionIds: transactionIds,
       promissoryAmount: promissoryAmount,
-      hasPendingPayment
+      hasPendingPayment,
     });
   } catch (err) {
     console.error(err);
@@ -221,7 +231,16 @@ router.get('/billing/print/:patientId', async (req, res) => {
 
 // POST /billing/confirm - Update transaction status to "Billing Confirmed" and create Payment record
 router.post('/billing/confirm', async (req, res) => {
-  const { transactionIds, subtotal, discountTypes, discountRate, discountAmount, promissoryAmount, finalTotal, billNumber } = req.body;
+  const {
+    transactionIds,
+    subtotal,
+    discountTypes,
+    discountRate,
+    discountAmount,
+    promissoryAmount,
+    finalTotal,
+    billNumber,
+  } = req.body;
 
   try {
     if (!transactionIds || transactionIds.length === 0) {
@@ -231,7 +250,7 @@ router.post('/billing/confirm', async (req, res) => {
     // Update all transactions to "Billing Confirmed"
     await Transaction.updateMany(
       { transactionId: { $in: transactionIds } },
-      { $set: { status: 'Billing Confirmed' } }
+      { $set: { status: 'Billing Confirmed' } },
     );
 
     // Get patient info from the first transaction
@@ -243,12 +262,12 @@ router.post('/billing/confirm', async (req, res) => {
         const fullName = `${patient.lastName}, ${patient.firstName}`.trim();
         // Find current admission to scope promissory and persist to payment
         const admission = await Admission.findOne({ patientId: hrn }).sort({ dateAdmitted: -1 });
-        
+
         // Get approved promissory for this admission if exists
-        const promissory = await Promissory.findOne({ 
+        const promissory = await Promissory.findOne({
           patientId: hrn,
           status: 'Approved',
-          admissionNumber: admission ? admission.admissionNumber : null
+          admissionNumber: admission ? admission.admissionNumber : null,
         }).sort({ dateApproved: -1 });
 
         // Create Payment record
@@ -266,17 +285,17 @@ router.post('/billing/confirm', async (req, res) => {
           billNumber: billNumber || `BILL-${Date.now()}`,
           patientName: fullName,
           patientHRN: hrn,
-          status: 'Pending'
+          status: 'Pending',
         });
         await payment.save();
-        
+
         // Create notification for cashier with full context (HRN, name, and phrase)
         const notification = new Notification({
           patientId: hrn,
           fullName: fullName,
           message: `Patient HRN ${hrn} ${fullName} for Payments`,
           department: 'Cashier',
-          read: false
+          read: false,
         });
         await notification.save();
 
@@ -307,35 +326,36 @@ router.post('/billing/cancel-confirm', async (req, res) => {
     // Check if any transaction has been paid (Payment Verified status)
     const verifiedTransactions = await Transaction.find({
       transactionId: { $in: transactionIds },
-      status: 'Payment Verified'
+      status: 'Payment Verified',
     });
 
     if (verifiedTransactions.length > 0) {
-      return res.status(403).json({ 
-        error: 'Cannot cancel: Payment has already been verified by cashier. Please contact cashier department.' 
+      return res.status(403).json({
+        error:
+          'Cannot cancel: Payment has already been verified by cashier. Please contact cashier department.',
       });
     }
 
     // Get the first transaction to find patientId
     const firstTransaction = await Transaction.findOne({ transactionId: transactionIds[0] });
-    
+
     if (firstTransaction) {
       const patient = await Patient.findById(firstTransaction.patientId);
       if (patient) {
         const hrn = patient.patientId || patient.tempId;
-        
+
         // Delete the Payment record for these transactions
         await Payment.deleteMany({
           patientId: firstTransaction.patientId,
           transactionIds: { $in: transactionIds },
-          status: 'Pending'
+          status: 'Pending',
         });
 
         // Delete the Cashier notification for this patient
         await Notification.deleteMany({
           patientId: hrn,
           department: 'Cashier',
-          read: false
+          read: false,
         });
 
         // Emit socket event to update cashier UI
@@ -349,7 +369,7 @@ router.post('/billing/cancel-confirm', async (req, res) => {
     // Update all transactions back to "For Billing" (only those with "Billing Confirmed")
     await Transaction.updateMany(
       { transactionId: { $in: transactionIds }, status: 'Billing Confirmed' },
-      { $set: { status: 'For Billing' } }
+      { $set: { status: 'For Billing' } },
     );
 
     res.json({ success: true, message: 'Transactions reverted to For Billing' });
@@ -367,12 +387,13 @@ router.get('/billing/payments', async (req, res) => {
       .sort({ createdAt: -1 });
 
     // Format payments for display
-    const formattedPayments = payments.map(payment => {
+    const formattedPayments = payments.map((payment) => {
       const patient = payment.patientId;
       return {
         _id: payment._id,
         patientHRN: payment.patientHRN || (patient ? patient.patientId || patient.tempId : 'N/A'),
-        patientName: payment.patientName || (patient ? `${patient.firstName} ${patient.lastName}` : 'Unknown'),
+        patientName:
+          payment.patientName || (patient ? `${patient.firstName} ${patient.lastName}` : 'Unknown'),
         admissionNumber: payment.admissionNumber || null,
         billNumber: payment.billNumber,
         subtotal: payment.subtotal,
@@ -383,7 +404,7 @@ router.get('/billing/payments', async (req, res) => {
         status: payment.status,
         paymentDate: payment.paymentDate,
         processedBy: payment.processedBy,
-        createdAt: payment.createdAt
+        createdAt: payment.createdAt,
       };
     });
 
@@ -410,32 +431,32 @@ router.get('/billing/payments/invoice/:paymentId', async (req, res) => {
     }
 
     // Find admission record
-    const admission = await Admission.findOne({ 
-      patientId: patient.patientId || patient.tempId 
+    const admission = await Admission.findOne({
+      patientId: patient.patientId || patient.tempId,
     }).sort({ dateAdmitted: -1 });
 
     // Get transactions for this payment
-    const transactions = await Transaction.find({ 
-      transactionId: { $in: payment.transactionIds } 
+    const transactions = await Transaction.find({
+      transactionId: { $in: payment.transactionIds },
     }).sort({ createdAt: 1 });
 
     // Build services list
     const servicesList = [];
     let refCounter = 1;
-    
-    transactions.forEach(tx => {
-      tx.services.forEach(service => {
+
+    transactions.forEach((tx) => {
+      tx.services.forEach((service) => {
         const qty = service.qty || 1;
         const totalAmount = service.amount || 0;
         const unitPrice = qty > 0 ? totalAmount / qty : totalAmount;
-        
+
         servicesList.push({
           ref: refCounter++,
           transactionType: service.type,
           description: service.description,
           qty: qty,
           unitPrice: unitPrice,
-          amount: totalAmount
+          amount: totalAmount,
         });
       });
     });
@@ -464,7 +485,7 @@ router.get('/billing/payments/invoice/:paymentId', async (req, res) => {
       currentDate: payment.createdAt,
       transactionIds: payment.transactionIds,
       paymentId: payment._id,
-      readOnly: true // Flag to disable editing
+      readOnly: true, // Flag to disable editing
     });
   } catch (err) {
     console.error(err);

@@ -5,144 +5,146 @@ const receiptSchema = new mongoose.Schema({
     type: String,
     required: true,
     unique: true,
-    index: true
+    index: true,
   },
-  
+
   // Link to Payment and CashierPayment
   paymentId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Payment',
-    required: true
+    required: true,
   },
   cashierPaymentId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'CashierPayment',
-    required: true
+    required: true,
   },
-  
+
   // Patient information
   patientId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Patient',
-    required: true
+    required: true,
   },
   patientHRN: {
     type: String,
-    required: true
+    required: true,
   },
   patientName: {
     type: String,
-    required: true
+    required: true,
   },
-  
+
   // Transaction details
   transactionIds: {
     type: [String],
-    required: true
+    required: true,
   },
   billNumber: {
     type: String,
-    required: true
+    required: true,
   },
-  
+
   // Financial breakdown
   subtotal: {
     type: Number,
-    required: true
+    required: true,
   },
   discountTypes: {
     type: [String],
-    default: []
+    default: [],
   },
   discountRate: {
     type: Number,
-    default: 0
+    default: 0,
   },
   discountAmount: {
     type: Number,
-    default: 0
+    default: 0,
   },
   promissoryAmount: {
     type: Number,
-    default: 0
+    default: 0,
   },
   finalTotal: {
     type: Number,
-    required: true
+    required: true,
   },
-  
+
   // Payment details
   amountReceived: {
     type: Number,
-    required: true
+    required: true,
   },
   changeGiven: {
     type: Number,
     required: true,
-    default: 0
+    default: 0,
   },
-  
+
   // Cashier and timestamp
   processedBy: {
     type: String,
     required: true,
-    default: 'Cashier'
+    default: 'Cashier',
   },
   receiptDate: {
     type: Date,
     required: true,
-    default: Date.now
+    default: Date.now,
   },
-  
+
   // Services snapshot for receipt
-  services: [{
-    ref: Number,
-    transactionType: String,
-    description: String,
-    qty: Number,
-    unitPrice: Number,
-    amount: Number
-  }],
-  
+  services: [
+    {
+      ref: Number,
+      transactionType: String,
+      description: String,
+      qty: Number,
+      unitPrice: Number,
+      amount: Number,
+    },
+  ],
+
   // Admission info
   admissionNumber: {
     type: String,
-    default: null
+    default: null,
   },
-  
+
   createdAt: {
     type: Date,
-    default: Date.now
+    default: Date.now,
   },
   updatedAt: {
     type: Date,
-    default: Date.now
-  }
+    default: Date.now,
+  },
 });
 
 // Update timestamp on save
-receiptSchema.pre('save', function(next) {
+receiptSchema.pre('save', function (next) {
   this.updatedAt = Date.now();
   next();
 });
 
 // Static method to generate next OR number
-receiptSchema.statics.generateORNumber = async function() {
+receiptSchema.statics.generateORNumber = async function () {
   const currentYear = new Date().getFullYear();
   const prefix = `OR-${currentYear}-`;
-  
+
   // Find the last receipt for this year
   const lastReceipt = await this.findOne({
-    orNumber: new RegExp(`^${prefix}`)
+    orNumber: new RegExp(`^${prefix}`),
   }).sort({ orNumber: -1 });
-  
+
   let nextNumber = 1;
   if (lastReceipt) {
     // Extract the number part and increment
     const lastNumber = parseInt(lastReceipt.orNumber.split('-').pop());
     nextNumber = lastNumber + 1;
   }
-  
+
   // Format: OR-2025-00001
   return `${prefix}${String(nextNumber).padStart(5, '0')}`;
 };

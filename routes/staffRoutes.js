@@ -5,7 +5,18 @@ const bcrypt = require('bcrypt');
 
 // Register staff
 router.post('/register-staff', async (req, res) => {
-  const { firstName, middleName, lastName, dateOfBirth, gender, civilStatus, nationality, contactNumber, emailAddress, homeAddress } = req.body;
+  const {
+    firstName,
+    middleName,
+    lastName,
+    dateOfBirth,
+    gender,
+    civilStatus,
+    nationality,
+    contactNumber,
+    emailAddress,
+    homeAddress,
+  } = req.body;
 
   // Basic server-side validation
   const contactOk = /^\d{11}$/.test((contactNumber || '').trim());
@@ -32,7 +43,7 @@ router.post('/register-staff', async (req, res) => {
     contactNumber,
     emailAddress,
     homeAddress,
-    status: 'active'
+    status: 'active',
   });
 
   res.redirect('/staff');
@@ -49,23 +60,23 @@ router.post('/manage-staff', async (req, res) => {
   try {
     const { staffId, category, username, password, statusToggle } = req.body;
     const staff = await Staff.findOne({ staffId });
-    
+
     if (!staff) {
       return res.status(404).send('Staff not found');
     }
-    
+
     staff.category = category;
     staff.username = username;
-    
+
     // Only update password if provided
     if (password && password.trim() !== '') {
       const hashedPassword = await bcrypt.hash(password, 10);
       staff.password = hashedPassword;
     }
-    
+
     staff.status = statusToggle === 'on' ? 'active' : 'inactive';
     await staff.save();
-    
+
     res.redirect('/staff');
   } catch (err) {
     console.error(err);
@@ -76,8 +87,20 @@ router.post('/manage-staff', async (req, res) => {
 // Update staff details
 router.post('/update-staff', async (req, res) => {
   try {
-    const { staffId, firstName, middleName, lastName, dateOfBirth, gender, civilStatus, nationality, contactNumber, emailAddress, homeAddress } = req.body;
-    
+    const {
+      staffId,
+      firstName,
+      middleName,
+      lastName,
+      dateOfBirth,
+      gender,
+      civilStatus,
+      nationality,
+      contactNumber,
+      emailAddress,
+      homeAddress,
+    } = req.body;
+
     // Basic server-side validation
     const contactOk = /^\d{11}$/.test((contactNumber || '').trim());
     const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test((emailAddress || '').trim());
@@ -87,12 +110,12 @@ router.post('/update-staff', async (req, res) => {
     if (!emailOk) {
       return res.status(400).send('Invalid email format.');
     }
-    
+
     const staff = await Staff.findOne({ staffId });
     if (!staff) {
       return res.status(404).send('Staff not found');
     }
-    
+
     // Update fields
     staff.firstName = firstName;
     staff.middleName = middleName;
@@ -104,7 +127,7 @@ router.post('/update-staff', async (req, res) => {
     staff.contactNumber = contactNumber;
     staff.emailAddress = emailAddress;
     staff.homeAddress = homeAddress;
-    
+
     await staff.save();
     res.redirect('/staff');
   } catch (err) {
@@ -118,11 +141,11 @@ router.post('/delete-staff', async (req, res) => {
   try {
     const { staffId } = req.body;
     const result = await Staff.deleteOne({ staffId });
-    
+
     if (result.deletedCount === 0) {
       return res.status(404).send('Staff not found');
     }
-    
+
     res.redirect('/staff');
   } catch (err) {
     console.error(err);
@@ -135,16 +158,16 @@ router.post('/restore-staff-password', async (req, res) => {
   try {
     const { staffId } = req.body;
     const staff = await Staff.findOne({ staffId });
-    
+
     if (!staff) {
       return res.status(404).json({ error: 'Staff not found' });
     }
-    
+
     // Hash the default password "password"
     const hashedPassword = await bcrypt.hash('password', 10);
     staff.password = hashedPassword;
     await staff.save();
-    
+
     res.json({ success: true, message: 'Password restored to default' });
   } catch (err) {
     console.error(err);

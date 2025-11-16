@@ -1,4 +1,4 @@
-const express = require('express'); 
+const express = require('express');
 const router = express.Router();
 const Doctor = require('../models/Doctor');
 const DoctorSchedule = require('../models/DoctorSchedule');
@@ -8,7 +8,7 @@ router.get('/doctorscheduling', async (req, res) => {
   try {
     const allDoctors = await Doctor.find();
     const today = new Date();
-    const doctors = allDoctors.filter(d => {
+    const doctors = allDoctors.filter((d) => {
       const isLicenseValid = !d.validUntil || new Date(d.validUntil) >= today;
       const isActive = (d.status || 'active') === 'active';
       return isLicenseValid && isActive;
@@ -53,7 +53,7 @@ router.post('/save-schedule/:doctorId', async (req, res) => {
           startTime,
           endTime,
           specialties: specialtiesArray,
-          services: servicesArray
+          services: servicesArray,
         });
 
         await schedule.save();
@@ -61,7 +61,6 @@ router.post('/save-schedule/:doctorId', async (req, res) => {
     }
 
     res.redirect('/doctorscheduling');
-
   } catch (error) {
     console.error('Error saving schedule:', error);
     res.status(500).send('Server error');
@@ -82,8 +81,17 @@ router.get('/api/doctor-schedule/:doctorId', async (req, res) => {
 router.post('/api/doctor-schedule/:doctorId', async (req, res) => {
   try {
     const { date, startTime, endTime, department } = req.body;
-    if (!date || !startTime || !endTime || !department) return res.status(400).json({ error: 'Missing fields' });
-    const doc = new DoctorSchedule({ doctorId: req.params.doctorId, date, startTime, endTime, department, specialties: [], services: [] });
+    if (!date || !startTime || !endTime || !department)
+      return res.status(400).json({ error: 'Missing fields' });
+    const doc = new DoctorSchedule({
+      doctorId: req.params.doctorId,
+      date,
+      startTime,
+      endTime,
+      department,
+      specialties: [],
+      services: [],
+    });
     await doc.save();
     res.json({ success: true, _id: doc._id });
   } catch (e) {
@@ -94,7 +102,8 @@ router.post('/api/doctor-schedule/:doctorId', async (req, res) => {
 router.put('/api/doctor-schedule/:id', async (req, res) => {
   try {
     const { date, startTime, endTime, department } = req.body;
-    if (!date || !startTime || !endTime || !department) return res.status(400).json({ error: 'Missing fields' });
+    if (!date || !startTime || !endTime || !department)
+      return res.status(400).json({ error: 'Missing fields' });
     await DoctorSchedule.findByIdAndUpdate(req.params.id, { date, startTime, endTime, department });
     res.json({ success: true });
   } catch (e) {

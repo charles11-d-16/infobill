@@ -26,7 +26,7 @@ router.get('/admission/:id', async (req, res) => {
   try {
     const patient = await Patient.findOne({ patientId: id });
     if (!patient) return res.status(404).send('Patient not found');
-    
+
     data = {
       id: patient.patientId,
       name: `${patient.firstName} ${patient.middleInitial} ${patient.lastName}`,
@@ -56,13 +56,13 @@ router.post('/submit-admission', async (req, res) => {
     category,
     referralLocation = '',
     referredDoctor = '',
-    services = []
+    services = [],
   } = req.body;
 
   try {
     const patient = await Patient.findOne({ patientId: id });
-    const fullName = patient 
-      ? `${patient.firstName} ${patient.middleInitial} ${patient.lastName}` 
+    const fullName = patient
+      ? `${patient.firstName} ${patient.middleInitial} ${patient.lastName}`
       : 'Unknown';
 
     const selectedServices = Array.isArray(services) ? services : [services];
@@ -75,7 +75,7 @@ router.post('/submit-admission', async (req, res) => {
       category,
       referralLocation,
       referredDoctor,
-      services: selectedServices
+      services: selectedServices,
     });
 
     await admission.save();
@@ -87,43 +87,47 @@ router.post('/submit-admission', async (req, res) => {
   }
 });
 
-
 router.get('/admit-list', async (req, res) => {
   try {
     const { success, error } = req.query;
     const ProcessedPatient = require('../models/ProcessedPatient');
-    
+
     // Exclude archived patients from main list
-    const patients = await Patient.find({ isArchived: { $ne: true } }, {
-      _id: 0,
-      patientId: 1,
-      firstName: 1,
-      lastName: 1,
-      middleInitial: 1,
-      birthDate: 1,
-      gender: 1,
-      address: 1
-    }).sort({ registrationDate: -1 });
+    const patients = await Patient.find(
+      { isArchived: { $ne: true } },
+      {
+        _id: 0,
+        patientId: 1,
+        firstName: 1,
+        lastName: 1,
+        middleInitial: 1,
+        birthDate: 1,
+        gender: 1,
+        address: 1,
+      },
+    ).sort({ registrationDate: -1 });
 
     // Get processed status for all patients
     const processedRecords = await ProcessedPatient.find({});
     const processedMap = {};
-    processedRecords.forEach(rec => {
+    processedRecords.forEach((rec) => {
       processedMap[rec.patientId] = rec.processed;
     });
 
     // Get admission status for these patients (if any Admission exists for patientId)
-    const ids = patients.map(p => p.patientId);
+    const ids = patients.map((p) => p.patientId);
     const admissions = await Admission.find({ patientId: { $in: ids } }, { patientId: 1 });
     const admittedMap = {};
-    admissions.forEach(a => { admittedMap[a.patientId] = true; });
+    admissions.forEach((a) => {
+      admittedMap[a.patientId] = true;
+    });
 
     res.render('admitList', {
       patients,
       processedMap,
       admittedMap,
       success: success || null,
-      error: error || null
+      error: error || null,
     });
   } catch (err) {
     console.error('Error fetching data for admit list:', err);
@@ -145,35 +149,36 @@ router.post('/admit/onhold/:tempId', (req, res) => {
 router.get('/patient-archive', async (req, res) => {
   try {
     const { success, error } = req.query;
-    
+
     // Query only archived patients
-    const patients = await Patient.find({ isArchived: true }, {
-      _id: 0,
-      patientId: 1,
-      firstName: 1,
-      lastName: 1,
-      middleInitial: 1,
-      birthDate: 1,
-      gender: 1,
-      address: 1,
-      isArchived: 1,
-      archivedAt: 1,
-      archivedBy: 1,
-      archivedFrom: 1,
-      archiveReason: 1
-    }).sort({ archivedAt: -1 });
+    const patients = await Patient.find(
+      { isArchived: true },
+      {
+        _id: 0,
+        patientId: 1,
+        firstName: 1,
+        lastName: 1,
+        middleInitial: 1,
+        birthDate: 1,
+        gender: 1,
+        address: 1,
+        isArchived: 1,
+        archivedAt: 1,
+        archivedBy: 1,
+        archivedFrom: 1,
+        archiveReason: 1,
+      },
+    ).sort({ archivedAt: -1 });
 
     res.render('patientarchieve', {
       patients,
       success: success || null,
-      error: error || null
+      error: error || null,
     });
   } catch (err) {
     console.error('Error fetching archived patients:', err);
     res.status(500).send('Server Error');
   }
 });
-
-
 
 module.exports = router;

@@ -7,14 +7,14 @@ function toggleSidebar() {
   if (!sidebar || !mainContainer || !toggleIcon || !backdrop) return;
 
   var isMobile = window.innerWidth <= 900;
-  
+
   // Helper function to hide the sidebar
   function hideSidebar() {
     if (isMobile) {
       sidebar.classList.add('is-hidden');
       backdrop.style.opacity = 0;
       // Use a timeout to fully hide it AFTER the transition
-      setTimeout(() => backdrop.style.display = 'none', 300);
+      setTimeout(() => (backdrop.style.display = 'none'), 300);
       toggleIcon.className = 'bi bi-box-arrow-right';
     } else {
       sidebar.style.display = 'none';
@@ -29,7 +29,7 @@ function toggleSidebar() {
       sidebar.classList.remove('is-hidden');
       backdrop.style.display = 'block'; // Show it immediately
       // Use a timeout to apply opacity AFTER it's displayed (for transition)
-      setTimeout(() => backdrop.style.opacity = 1, 10); 
+      setTimeout(() => (backdrop.style.opacity = 1), 10);
       toggleIcon.className = 'bi bi-box-arrow-left';
     } else {
       sidebar.style.display = '';
@@ -37,7 +37,7 @@ function toggleSidebar() {
       toggleIcon.className = 'bi bi-box-arrow-left';
     }
   }
-  
+
   // Main toggle logic
   if (isMobile) {
     if (sidebar.classList.contains('is-hidden')) {
@@ -56,7 +56,7 @@ function toggleSidebar() {
 }
 
 // Event Listeners for Page Load and Backdrop Click
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
   var sidebar = document.getElementById('sidebar');
   var backdrop = document.getElementById('sidebar-backdrop');
   var toggleIcon = document.getElementById('sidebarToggleIcon');

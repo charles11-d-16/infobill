@@ -11,7 +11,7 @@ const promissorySchema = new mongoose.Schema({
   status: {
     type: String,
     enum: ['Pending', 'Approved', 'Rejected', 'Settled', 'Overdue'],
-    default: 'Pending'
+    default: 'Pending',
   },
   amount: { type: Number, required: true }, // Amount hospital will cover
   notes: String,
@@ -21,7 +21,7 @@ const promissorySchema = new mongoose.Schema({
   rejectedBy: String,
   rejectionReason: String,
   // Settlement fields (set when payment is verified for the admission)
-  settledAt: Date
+  settledAt: Date,
 });
 
 module.exports = mongoose.models.Promissory || mongoose.model('Promissory', promissorySchema);

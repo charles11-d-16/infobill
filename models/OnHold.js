@@ -9,7 +9,7 @@ const onHoldSchema = new mongoose.Schema({
   clothes: String,
   dateTimeFound: String,
   locationFound: String,
-  status: [String]
+  status: [String],
 });
 
 // Prevent OverwriteModelError

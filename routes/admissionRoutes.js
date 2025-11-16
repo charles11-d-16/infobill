@@ -17,7 +17,7 @@ router.post('/admission/admit', async (req, res) => {
 
     // Fetch patient from Patient collection (all patients now exist here)
     const patient = await Patient.findOne({ patientId });
-    
+
     if (!patient) {
       return res.status(404).json({ error: 'Patient not found' });
     }
@@ -49,27 +49,32 @@ router.post('/admission/admit', async (req, res) => {
       walkIn: walkIn === 'on',
       referredBy: referredBy || '',
       admittedBy: '',
-      dischargeBy: ''
+      dischargeBy: '',
     });
     await admission.save();
 
     // Create notification for the department with requested phrasing
     const departmentKey = admissionType === 'Emergency' ? 'Emergency' : 'OPD';
     // Build "Last, First" without middle initial and capitalize first letters
-    const lastName = patient.lastName ? (patient.lastName.charAt(0).toUpperCase() + patient.lastName.slice(1).toLowerCase()) : '';
-    const firstName = patient.firstName ? (patient.firstName.charAt(0).toUpperCase() + patient.firstName.slice(1).toLowerCase()) : '';
+    const lastName = patient.lastName
+      ? patient.lastName.charAt(0).toUpperCase() + patient.lastName.slice(1).toLowerCase()
+      : '';
+    const firstName = patient.firstName
+      ? patient.firstName.charAt(0).toUpperCase() + patient.firstName.slice(1).toLowerCase()
+      : '';
     const displayName = `${lastName}, ${firstName}`.trim();
 
-    const message = departmentKey === 'Emergency'
-      ? `Patient HRN ${patientId} ${displayName} for Emergency Medical Attention`
-      : `Patient HRN ${patientId} ${displayName} for Outpatient Consultation`;
+    const message =
+      departmentKey === 'Emergency'
+        ? `Patient HRN ${patientId} ${displayName} for Emergency Medical Attention`
+        : `Patient HRN ${patientId} ${displayName} for Outpatient Consultation`;
 
     const notification = new Notification({
       patientId,
       fullName: displayName,
       message,
       department: departmentKey,
-      read: false
+      read: false,
     });
     await notification.save();
 

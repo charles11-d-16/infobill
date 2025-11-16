@@ -6,10 +6,7 @@ const Notification = require('../models/Notification');
 router.get('/notifications', async (req, res) => {
   // Include legacy null departments and any case-variant of 'Admission'
   const filter = {
-    $or: [
-      { department: null },
-      { department: { $regex: /^admission$/i } }
-    ]
+    $or: [{ department: null }, { department: { $regex: /^admission$/i } }],
   };
   const notifs = await Notification.find(filter).sort({ createdAt: -1 }).limit(50);
   res.json(notifs);
@@ -17,7 +14,9 @@ router.get('/notifications', async (req, res) => {
 
 // Get Emergency department notifications
 router.get('/notifications/emergency', async (req, res) => {
-  const notifs = await Notification.find({ department: 'Emergency' }).sort({ createdAt: -1 }).limit(50);
+  const notifs = await Notification.find({ department: 'Emergency' })
+    .sort({ createdAt: -1 })
+    .limit(50);
   res.json(notifs);
 });
 
@@ -29,19 +28,25 @@ router.get('/notifications/opd', async (req, res) => {
 
 // Get Billing department notifications
 router.get('/notifications/billing', async (req, res) => {
-  const notifs = await Notification.find({ department: 'Billing' }).sort({ createdAt: -1 }).limit(50);
+  const notifs = await Notification.find({ department: 'Billing' })
+    .sort({ createdAt: -1 })
+    .limit(50);
   res.json(notifs);
 });
 
 // Get Cashier department notifications
 router.get('/notifications/cashier', async (req, res) => {
-  const notifs = await Notification.find({ department: 'Cashier' }).sort({ createdAt: -1 }).limit(50);
+  const notifs = await Notification.find({ department: 'Cashier' })
+    .sort({ createdAt: -1 })
+    .limit(50);
   res.json(notifs);
 });
 
 // Get Promissory department notifications
 router.get('/notifications/promissory', async (req, res) => {
-  const notifs = await Notification.find({ department: 'Promissory' }).sort({ createdAt: -1 }).limit(50);
+  const notifs = await Notification.find({ department: 'Promissory' })
+    .sort({ createdAt: -1 })
+    .limit(50);
   res.json(notifs);
 });
 

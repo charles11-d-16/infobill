@@ -13,7 +13,7 @@ const Nurse = require('../models/Nurse');
 router.get('/laboratory', async (req, res) => {
   try {
     const labPatients = await Admission.find({
-      category: { $regex: /^Laboratory$/i }
+      category: { $regex: /^Laboratory$/i },
     });
     res.render('laboratory', { patients: labPatients });
   } catch (err) {
@@ -43,8 +43,8 @@ router.get('/laboratory/view/:id', async (req, res) => {
     const nurseSchedules = await NurseSchedule.find({ date: day });
 
     // Extract IDs of doctors and nurses scheduled today
-    const doctorIds = doctorSchedules.map(d => d.doctorId);
-    const nurseIds = nurseSchedules.map(n => n.nurseId);
+    const doctorIds = doctorSchedules.map((d) => d.doctorId);
+    const nurseIds = nurseSchedules.map((n) => n.nurseId);
 
     // Fetch available doctors and nurses using the IDs
     const availableDoctors = await Doctor.find({ doctorId: { $in: doctorIds } });
@@ -56,10 +56,10 @@ router.get('/laboratory/view/:id', async (req, res) => {
     // Prepare detailed services array safely for the view
     let detailedServices = [];
     if (admission && Array.isArray(admission.services) && admission.services.length) {
-      detailedServices = admission.services.map(service => ({
+      detailedServices = admission.services.map((service) => ({
         transactionType: admission.category || '',
-        description: typeof service === 'string' ? service : (service.description || ''),
-        amount: service.amount || 0
+        description: typeof service === 'string' ? service : service.description || '',
+        amount: service.amount || 0,
       }));
     }
 
@@ -93,7 +93,7 @@ router.post('/laboratory/view/:id/diagnose', async (req, res) => {
       // It's a patientId (HRN)
       patient = await Patient.findOne({ patientId: id });
     }
-    
+
     if (!patient) {
       return res.status(404).send('Patient not found');
     }
@@ -124,9 +124,9 @@ router.post('/laboratory/view/:id/diagnose', async (req, res) => {
           complaint,
           doctor_order,
           nurse_assist: nurseFullName,
-          doctor: doctorFullName
-        }
-      }
+          doctor: doctorFullName,
+        },
+      },
     });
 
     res.redirect(`/laboratory/view/${id}`);
@@ -147,7 +147,7 @@ router.post('/laboratory/view/:id/request-service', async (req, res) => {
       services,
       patientId,
       fullName,
-      patientType = 'regular' // Default fallback
+      patientType = 'regular', // Default fallback
     } = req.body;
 
     // Use subcategory for Laboratory, otherwise main category
@@ -162,7 +162,7 @@ router.post('/laboratory/view/:id/request-service', async (req, res) => {
       referralLocation,
       referredDoctor,
       services: Array.isArray(services) ? services : [services],
-      patientId: patientId // Always use patientId since all patients have one now
+      patientId: patientId, // Always use patientId since all patients have one now
     };
 
     const newAdmission = new Admission(admissionData);
@@ -171,7 +171,7 @@ router.post('/laboratory/view/:id/request-service', async (req, res) => {
     res.redirect(`/laboratory/view/${req.params.id}`);
   } catch (err) {
     console.error(err);
-    res.status(500).send("Error processing service request.");
+    res.status(500).send('Error processing service request.');
   }
 });
 

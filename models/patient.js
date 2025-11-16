@@ -32,7 +32,7 @@ const patientSchema = new mongoose.Schema({
   archivedAt: { type: Date, default: null },
   archivedBy: { type: String, default: null },
   archivedFrom: { type: String, default: null }, // Department who archived
-  archiveReason: { type: String, default: null }
+  archiveReason: { type: String, default: null },
 });
 
 // Prevent OverwriteModelError

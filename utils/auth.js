@@ -2,11 +2,11 @@
 // Middleware to protect routes except /login and /otp
 
 function authMiddleware(req, res, next) {
-    // Debug: log session info for troubleshooting
-    console.log('AUTH MIDDLEWARE:', {
-      path: req.path,
-      session: req.session
-    });
+  // Debug: log session info for troubleshooting
+  console.log('AUTH MIDDLEWARE:', {
+    path: req.path,
+    session: req.session,
+  });
   const publicPaths = ['/login', '/otp', '/forgot-password'];
   // Allow static files, login, and otp
   if (
@@ -18,12 +18,7 @@ function authMiddleware(req, res, next) {
   ) {
     return next();
   }
-  if (
-    req.session &&
-    req.session.username &&
-    req.session.emailAddress &&
-    req.session.category
-  ) {
+  if (req.session && req.session.username && req.session.emailAddress && req.session.category) {
     return next();
   }
   return res.redirect('/login');

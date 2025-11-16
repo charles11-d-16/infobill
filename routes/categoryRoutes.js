@@ -10,7 +10,6 @@ router.get('/category', async (req, res) => {
   res.render('category', { categories, transactionTypes }); // ✅ pass both
 });
 
-
 // POST form
 router.post('/category', async (req, res) => {
   const { name } = req.body;
@@ -41,14 +40,14 @@ router.post('/department-transactions', async (req, res) => {
   // Find types to get their names
   const transactionTypes = await TransactionType.find({ _id: { $in: ids } });
 
-  const transactions = transactionTypes.map(tx => ({
+  const transactions = transactionTypes.map((tx) => ({
     transactionTypeId: tx._id,
-    type: tx.type
+    type: tx.type,
   }));
 
   await DepartmentTransaction.create({
     categoryId,
-    transactions
+    transactions,
   });
 
   res.redirect('/category');

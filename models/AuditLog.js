@@ -9,7 +9,7 @@ const auditLogSchema = new mongoose.Schema({
   timestamp: { type: Date, default: Date.now },
   before: mongoose.Schema.Types.Mixed, // previous state
   after: mongoose.Schema.Types.Mixed, // new state
-  details: mongoose.Schema.Types.Mixed // extra info
+  details: mongoose.Schema.Types.Mixed, // extra info
 });
 
 module.exports = mongoose.models.AuditLog || mongoose.model('AuditLog', auditLogSchema);

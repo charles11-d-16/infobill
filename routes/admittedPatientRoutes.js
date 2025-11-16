@@ -10,30 +10,30 @@ const DischargedPatient = require('../models/DischargedPatient');
 router.get('/admittedpatient', async (req, res) => {
   try {
     const admittedPatients = await Admission.find().sort({ admittedAt: -1 });
-    
+
     // For each admission, check if patient has been processed (diagnose or charges after admission)
     const patientsWithNurse = await Promise.all(
       admittedPatients.map(async (admission) => {
         const medical = await Medical.findOne({ patientId: admission.patientId });
-        
+
         let autoNurseName = '—';
         let hasProcessing = false;
-        
+
         if (medical && medical.diagnose && medical.diagnose.length > 0) {
           // Get the most recent diagnose entry (last item in array)
           const recentDiagnose = medical.diagnose[medical.diagnose.length - 1];
           autoNurseName = recentDiagnose.nurse_assist || '—';
-          
+
           // Check if any diagnose was added after admission
-          const diagnosesAfterAdmission = medical.diagnose.filter(d => {
+          const diagnosesAfterAdmission = medical.diagnose.filter((d) => {
             return new Date(d.date) >= new Date(admission.admittedAt);
           });
-          
+
           if (diagnosesAfterAdmission.length > 0) {
             hasProcessing = true;
           }
         }
-        
+
         // Check if patient has any transactions (charge slips)
         if (!hasProcessing) {
           const transactions = await Transaction.findOne({ patientId: admission.patientId });
@@ -41,15 +41,15 @@ router.get('/admittedpatient', async (req, res) => {
             hasProcessing = true;
           }
         }
-        
+
         return {
           ...admission.toObject(),
           autoDischargeNurse: autoNurseName,
-          hasProcessing
+          hasProcessing,
         };
-      })
+      }),
     );
-    
+
     res.render('admittedpatient', { admittedPatients: patientsWithNurse });
   } catch (err) {
     console.error(err);
@@ -103,8 +103,10 @@ router.post('/admittedpatient/complete-discharge', async (req, res) => {
     let txForAdmission = [];
     let txSnapshot = [];
     try {
-      txForAdmission = await Transaction.find({ admissionId: admission.admittingId }).sort({ createdAt: 1 });
-      txSnapshot = txForAdmission.map(tx => {
+      txForAdmission = await Transaction.find({ admissionId: admission.admittingId }).sort({
+        createdAt: 1,
+      });
+      txSnapshot = txForAdmission.map((tx) => {
         let services = tx.services;
         if (typeof services === 'string') {
           try {
@@ -115,23 +117,26 @@ router.post('/admittedpatient/complete-discharge', async (req, res) => {
           }
         }
         if (!Array.isArray(services)) services = [];
-        return ({
+        return {
           transactionId: tx.transactionId,
           status: tx.status,
           createdAt: tx.createdAt,
-          services: services.map(s => ({
+          services: services.map((s) => ({
             serviceType: s.type, // map to safe field name in archive
             description: s.description,
             procedureAmount: s.procedureAmount,
             itemUsed: s.itemUsed,
             itemAmount: s.itemAmount,
             qty: s.qty,
-            amount: s.amount
-          }))
-        });
+            amount: s.amount,
+          })),
+        };
       });
     } catch (e) {
-      console.warn('Discharge: failed to collect transactions snapshot:', e && e.message ? e.message : e);
+      console.warn(
+        'Discharge: failed to collect transactions snapshot:',
+        e && e.message ? e.message : e,
+      );
       txForAdmission = [];
       txSnapshot = [];
     }
@@ -151,7 +156,7 @@ router.post('/admittedpatient/complete-discharge', async (req, res) => {
               complaint: d.complaint,
               doctor_order: d.doctor_order,
               nurse_assist: d.nurse_assist,
-              doctor: d.doctor
+              doctor: d.doctor,
             });
           } else {
             keep.push(d);
@@ -179,7 +184,7 @@ router.post('/admittedpatient/complete-discharge', async (req, res) => {
       dischargedBy: dischargedBy || admission.dischargeBy || 'Nurse',
       clearedBy: admission.clearedBy || '',
       diagnoses: dxSnapshot,
-      transactions: txSnapshot
+      transactions: txSnapshot,
     });
 
     // Delete all transactions for this admission to avoid showing in next admissions
@@ -188,7 +193,10 @@ router.post('/admittedpatient/complete-discharge', async (req, res) => {
         await Transaction.deleteMany({ admissionId: admission.admittingId });
       }
     } catch (e) {
-      console.warn('Discharge: failed to delete transactions for admission:', e && e.message ? e.message : e);
+      console.warn(
+        'Discharge: failed to delete transactions for admission:',
+        e && e.message ? e.message : e,
+      );
     }
 
     // Remove admission
@@ -196,7 +204,11 @@ router.post('/admittedpatient/complete-discharge', async (req, res) => {
 
     // Clear processed flag so Admit List shows Process
     await ProcessedPatient.deleteOne({ patientId: admission.patientId }).catch(async () => {
-      await ProcessedPatient.updateOne({ patientId: admission.patientId }, { $set: { processed: false } }, { upsert: true });
+      await ProcessedPatient.updateOne(
+        { patientId: admission.patientId },
+        { $set: { processed: false } },
+        { upsert: true },
+      );
     });
 
     // Emit socket refresh for admitted patients list
@@ -217,28 +229,28 @@ router.post('/admittedpatient/complete-discharge', async (req, res) => {
 router.post('/admittedpatient/cancel', async (req, res) => {
   try {
     const { admissionId } = req.body;
-    
+
     // Get the admission record
     const admission = await Admission.findById(admissionId);
     if (!admission) {
       return res.status(404).json({ error: 'Admission not found' });
     }
-    
+
     // Check if patient has been processed
     const medical = await Medical.findOne({ patientId: admission.patientId });
     let hasProcessing = false;
-    
+
     if (medical && medical.diagnose && medical.diagnose.length > 0) {
       // Check if any diagnose was added after admission
-      const diagnosesAfterAdmission = medical.diagnose.filter(d => {
+      const diagnosesAfterAdmission = medical.diagnose.filter((d) => {
         return new Date(d.date) >= new Date(admission.admittedAt);
       });
-      
+
       if (diagnosesAfterAdmission.length > 0) {
         hasProcessing = true;
       }
     }
-    
+
     // Check for transactions
     if (!hasProcessing) {
       const transactions = await Transaction.findOne({ patientId: admission.patientId });
@@ -246,15 +258,17 @@ router.post('/admittedpatient/cancel', async (req, res) => {
         hasProcessing = true;
       }
     }
-    
+
     // Block cancellation if patient has been processed
     if (hasProcessing) {
-      return res.status(403).json({ error: 'Cannot cancel: patient has been processed (has diagnoses or charges)' });
+      return res
+        .status(403)
+        .json({ error: 'Cannot cancel: patient has been processed (has diagnoses or charges)' });
     }
-    
+
     // Delete the admission record
     await Admission.findByIdAndDelete(admissionId);
-    
+
     res.json({ success: true, message: 'Admission cancelled successfully' });
   } catch (err) {
     console.error(err);

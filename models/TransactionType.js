@@ -9,9 +9,9 @@ const transactionTypeSchema = new mongoose.Schema({
       procedureAmount: Number,
       itemUsed: String,
       itemAmount: Number,
-      amount: Number
-    }
-  ]
+      amount: Number,
+    },
+  ],
 });
 
 module.exports = mongoose.model('TransactionType', transactionTypeSchema);

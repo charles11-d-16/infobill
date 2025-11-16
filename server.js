@@ -24,14 +24,16 @@ const io = socketIo(server);
 app.set('io', io);
 
 // Session middleware
-app.use(session({
-  secret: process.env.SESSION_SECRET,
-  resave: false,
-  saveUninitialized: false,
-  cookie: { 
-    maxAge: 24 * 60 * 60 * 1000 // 24 hours
-  }
-}));
+app.use(
+  session({
+    secret: process.env.SESSION_SECRET,
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      maxAge: 24 * 60 * 60 * 1000, // 24 hours
+    },
+  }),
+);
 
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
@@ -42,14 +44,12 @@ app.use(express.json());
 app.use(authMiddleware);
 
 // Connect to MongoDB
-mongoose.connect(process.env.MONGODB_URI)
+mongoose.connect(process.env.MONGODB_URI);
 const categoryRoutes = require('./routes/categoryRoutes'); // adjust path
 app.use('/', categoryRoutes);
 
-
 const opdRoutes = require('./routes/opdRoutes'); // adjust path as needed
 app.use('/', opdRoutes); // mount to root or change prefix as needed
-
 
 const emergencyRoutes = require('./routes/emergencyRoutes');
 app.use('/', emergencyRoutes);
@@ -63,7 +63,6 @@ app.use('/', labRoutes);
 const admittingListRoutes = require('./routes/admittingList');
 app.use('/', admittingListRoutes);
 
-
 const nurseschedRoutes = require('./routes/nurseschedRoutes');
 app.use('/', nurseschedRoutes); // Or a different base path
 
@@ -76,11 +75,8 @@ app.use('/', staffRoutes);
 const medicalRoutes = require('./routes/medicalRoutes');
 app.use('/', medicalRoutes);
 
-
 const doctorRoutes = require('./routes/doctorRoutes');
 app.use('/', doctorRoutes); // This will allow /doctorscheduling to work
-
-
 
 const patientRoutes = require('./routes/patientRoutes');
 app.use('/', patientRoutes);
@@ -88,11 +84,8 @@ app.use('/', patientRoutes);
 const audittrailRoutes = require('./routes/audittrailRoutes');
 app.use('/audittrail', audittrailRoutes);
 
-
-
 const notificationRoutes = require('./routes/notificationRoutes');
 app.use('/', notificationRoutes);
-
 
 const admissionRecordsRoutes = require('./routes/admissionRecordsRoutes');
 app.use('/', admissionRecordsRoutes);
@@ -130,47 +123,59 @@ app.get('/dashboard', async (req, res) => {
       // Treat input dates as Philippines local dates and convert exact bounds to UTC
       // Example: 2025-11-04 (PH) => UTC range [2025-11-03T16:00:00Z, 2025-11-04T15:59:59.999Z]
       const startLocal = moment(`${req.query.startDate} 00:00:00 +08:00`, 'YYYY-MM-DD HH:mm:ss Z');
-      const endLocal = moment(`${req.query.endDate} 23:59:59.999 +08:00`, 'YYYY-MM-DD HH:mm:ss.SSS Z');
+      const endLocal = moment(
+        `${req.query.endDate} 23:59:59.999 +08:00`,
+        'YYYY-MM-DD HH:mm:ss.SSS Z',
+      );
       startDate = startLocal.utc().toDate();
       endDate = endLocal.utc().toDate();
     } else {
       // Default to last 30 days (Philippines time)
       // Compute PH today bounds, then convert to UTC
-      const todayPHStart = moment(`${moment().format('YYYY-MM-DD')} 00:00:00 +08:00`, 'YYYY-MM-DD HH:mm:ss Z');
-      const todayPHEnd = moment(`${moment().format('YYYY-MM-DD')} 23:59:59.999 +08:00`, 'YYYY-MM-DD HH:mm:ss.SSS Z');
+      const todayPHStart = moment(
+        `${moment().format('YYYY-MM-DD')} 00:00:00 +08:00`,
+        'YYYY-MM-DD HH:mm:ss Z',
+      );
+      const todayPHEnd = moment(
+        `${moment().format('YYYY-MM-DD')} 23:59:59.999 +08:00`,
+        'YYYY-MM-DD HH:mm:ss.SSS Z',
+      );
       endDate = todayPHEnd.utc().toDate();
       startDate = todayPHStart.clone().subtract(29, 'days').utc().toDate();
     }
-    
+
     console.log('Dashboard date range (UTC):', startDate, 'to', endDate);
-    
+
     // Get stats scoped to selected date range (Philippines time already handled above)
     // Patients registered within range
     const totalPatients = await Patient.countDocuments({
-      registrationDate: { $gte: startDate, $lte: endDate }
+      registrationDate: { $gte: startDate, $lte: endDate },
     });
-    
+
     // Discharged patients within range (used for admissions + revenue/expenses)
     const dischargedPatients = await DischargedPatient.find({
-      dischargedAt: { $gte: startDate, $lte: endDate }
+      dischargedAt: { $gte: startDate, $lte: endDate },
     });
-    
+
     console.log('Total admissions:', await Admission.countDocuments());
     console.log('Discharged patients:', dischargedPatients.length);
-    
+
     const totalAdmissions = dischargedPatients.length;
-    const opdPatients = await Patient.countDocuments({ 
+    const opdPatients = await Patient.countDocuments({
       category: 'Out Patient Department',
-      registrationDate: { $gte: startDate, $lte: endDate }
+      registrationDate: { $gte: startDate, $lte: endDate },
     });
-    const emergencyPatients = await Patient.countDocuments({ 
+    const emergencyPatients = await Patient.countDocuments({
       category: 'Emergency',
-      registrationDate: { $gte: startDate, $lte: endDate }
+      registrationDate: { $gte: startDate, $lte: endDate },
     });
     // Scope pending billing to range using an assumed createdAt/updatedAt if available; fallback to all
     let pendingBilling = 0;
     try {
-      pendingBilling = await Transaction.countDocuments({ status: 'For Billing', createdAt: { $gte: startDate, $lte: endDate } });
+      pendingBilling = await Transaction.countDocuments({
+        status: 'For Billing',
+        createdAt: { $gte: startDate, $lte: endDate },
+      });
     } catch (_) {
       pendingBilling = await Transaction.countDocuments({ status: 'For Billing' });
     }
@@ -180,24 +185,24 @@ app.get('/dashboard', async (req, res) => {
     // Calculate expenses and income from discharged patients' transactions
     let totalExpenses = 0;
     let totalNetIncome = 0;
-    
-    dischargedPatients.forEach(discharged => {
+
+    dischargedPatients.forEach((discharged) => {
       if (discharged.transactions && Array.isArray(discharged.transactions)) {
-        discharged.transactions.forEach(transaction => {
+        discharged.transactions.forEach((transaction) => {
           if (transaction.services && Array.isArray(transaction.services)) {
-            transaction.services.forEach(service => {
+            transaction.services.forEach((service) => {
               const qty = service.qty || 1;
-              
+
               // If procedureAmount exists, add to net income
               if (service.procedureAmount) {
                 totalNetIncome += service.procedureAmount * qty;
               }
-              
+
               // If itemAmount exists, add to expenses
               if (service.itemAmount) {
                 totalExpenses += service.itemAmount * qty;
               }
-              
+
               // If both are null/0, use the amount field as net income
               if (!service.procedureAmount && !service.itemAmount && service.amount) {
                 totalNetIncome += service.amount * qty;
@@ -210,8 +215,15 @@ app.get('/dashboard', async (req, res) => {
 
     // Total Revenue = Net Income + Expenses
     const totalRevenue = totalNetIncome + totalExpenses;
-    
-  console.log('Expenses:', totalExpenses, 'Net Income:', totalNetIncome, 'Total Revenue:', totalRevenue);
+
+    console.log(
+      'Expenses:',
+      totalExpenses,
+      'Net Income:',
+      totalNetIncome,
+      'Total Revenue:',
+      totalRevenue,
+    );
 
     // For demo purposes, set trends and other stats
     const stats = {
@@ -225,27 +237,27 @@ app.get('/dashboard', async (req, res) => {
       incomeTrend: 0,
       expenses: totalExpenses,
       expensesTrend: 0,
-      outstandingExpenses: 0
+      outstandingExpenses: 0,
     };
 
-  // Prepare detailed transactions for table (within the date range)
+    // Prepare detailed transactions for table (within the date range)
     const transactions = [];
     const revenueByDate = {}; // YYYY-MM-DD (PH) -> revenue sum
-    dischargedPatients.forEach(discharged => {
+    dischargedPatients.forEach((discharged) => {
       if (discharged.transactions && Array.isArray(discharged.transactions)) {
-        discharged.transactions.forEach(transaction => {
+        discharged.transactions.forEach((transaction) => {
           if (transaction.services && Array.isArray(transaction.services)) {
-            transaction.services.forEach(service => {
+            transaction.services.forEach((service) => {
               const qty = service.qty || 1;
               const itemAmount = (service.itemAmount || 0) * qty;
               const procedureAmount = (service.procedureAmount || 0) * qty;
               let totalAmount = itemAmount + procedureAmount;
-              
+
               // If both are 0, use the amount field
               if (!service.procedureAmount && !service.itemAmount && service.amount) {
                 totalAmount = service.amount * qty;
               }
-              
+
               // Revenue bucket by PH local date
               const revenueKey = moment(discharged.dischargedAt).utcOffset(8).format('YYYY-MM-DD');
               revenueByDate[revenueKey] = (revenueByDate[revenueKey] || 0) + (totalAmount || 0);
@@ -255,8 +267,10 @@ app.get('/dashboard', async (req, res) => {
                 patientName: discharged.fullName,
                 description: service.description || service.serviceType || 'N/A',
                 itemAmount: itemAmount,
-                procedureAmount: procedureAmount || ((!service.itemAmount && service.amount) ? service.amount * qty : 0),
-                totalAmount: totalAmount || (service.amount * qty) || 0
+                procedureAmount:
+                  procedureAmount ||
+                  (!service.itemAmount && service.amount ? service.amount * qty : 0),
+                totalAmount: totalAmount || service.amount * qty || 0,
               });
             });
           }
@@ -268,17 +282,31 @@ app.get('/dashboard', async (req, res) => {
     // Aggregate registered patients by registrationDate
     const registeredAgg = await Patient.aggregate([
       { $match: { registrationDate: { $gte: startDate, $lte: endDate } } },
-      { $group: { _id: { $dateToString: { format: '%Y-%m-%d', date: '$registrationDate', timezone: '+08:00' } }, count: { $sum: 1 } } },
-      { $sort: { _id: 1 } }
+      {
+        $group: {
+          _id: {
+            $dateToString: { format: '%Y-%m-%d', date: '$registrationDate', timezone: '+08:00' },
+          },
+          count: { $sum: 1 },
+        },
+      },
+      { $sort: { _id: 1 } },
     ]);
 
     // Aggregate discharged patients by dischargedAt
     const dischargedAgg = await mongoose.model('DischargedPatient').aggregate([
       { $match: { dischargedAt: { $gte: startDate, $lte: endDate } } },
-      { $group: { _id: { $dateToString: { format: '%Y-%m-%d', date: '$dischargedAt', timezone: '+08:00' } }, count: { $sum: 1 } } },
-      { $sort: { _id: 1 } }
+      {
+        $group: {
+          _id: {
+            $dateToString: { format: '%Y-%m-%d', date: '$dischargedAt', timezone: '+08:00' },
+          },
+          count: { $sum: 1 },
+        },
+      },
+      { $sort: { _id: 1 } },
     ]);
-    
+
     console.log('Registered aggregation:', JSON.stringify(registeredAgg));
     console.log('Discharged aggregation:', JSON.stringify(dischargedAgg));
 
@@ -287,7 +315,7 @@ app.get('/dashboard', async (req, res) => {
     const labelIndex = {};
     const current = moment(startDate);
     const end = moment(endDate);
-    
+
     while (current.isSameOrBefore(end, 'day')) {
       const key = current.format('YYYY-MM-DD');
       labels.push(key);
@@ -298,38 +326,39 @@ app.get('/dashboard', async (req, res) => {
     const registeredCounts = new Array(labels.length).fill(0);
     const dischargedCounts = new Array(labels.length).fill(0);
 
-    registeredAgg.forEach(row => {
+    registeredAgg.forEach((row) => {
       if (labelIndex[row._id] !== undefined) registeredCounts[labelIndex[row._id]] = row.count;
     });
-    dischargedAgg.forEach(row => {
+    dischargedAgg.forEach((row) => {
       if (labelIndex[row._id] !== undefined) dischargedCounts[labelIndex[row._id]] = row.count;
     });
 
-  // Daily revenue series aligned to labels
-  const revenueSeries = labels.map(key => revenueByDate[key] || 0);
+    // Daily revenue series aligned to labels
+    const revenueSeries = labels.map((key) => revenueByDate[key] || 0);
 
-  const chartData = { labels, registeredCounts, dischargedCounts, revenueSeries };
+    const chartData = { labels, registeredCounts, dischargedCounts, revenueSeries };
 
     // Department distribution from discharged patients within the date range
     const deptAgg = await mongoose.model('DischargedPatient').aggregate([
       { $match: { dischargedAt: { $gte: startDate, $lte: endDate } } },
-      { $group: { 
+      {
+        $group: {
           _id: {
             $cond: [
-              { $or: [ { $eq: ['$department', null] }, { $eq: ['$department', ''] } ] },
+              { $or: [{ $eq: ['$department', null] }, { $eq: ['$department', ''] }] },
               'Unspecified',
-              '$department'
-            ]
+              '$department',
+            ],
           },
-          count: { $sum: 1 } 
-        } 
+          count: { $sum: 1 },
+        },
       },
-      { $sort: { count: -1 } }
+      { $sort: { count: -1 } },
     ]);
 
     const departmentData = {
-      labels: deptAgg.map(d => d._id || 'Unknown'),
-      counts: deptAgg.map(d => d.count)
+      labels: deptAgg.map((d) => d._id || 'Unknown'),
+      counts: deptAgg.map((d) => d.count),
     };
 
     res.render('dashboard', {
@@ -338,7 +367,7 @@ app.get('/dashboard', async (req, res) => {
       chartData,
       departmentData,
       username: req.session.username,
-      emailAddress: req.session.emailAddress
+      emailAddress: req.session.emailAddress,
     });
   } catch (error) {
     console.error('Dashboard error:', error);
@@ -358,34 +387,43 @@ app.get('/triagedashboard', async (req, res) => {
     let startDate, endDate;
     if (req.query.startDate && req.query.endDate) {
       const startLocal = moment(`${req.query.startDate} 00:00:00 +08:00`, 'YYYY-MM-DD HH:mm:ss Z');
-      const endLocal = moment(`${req.query.endDate} 23:59:59.999 +08:00`, 'YYYY-MM-DD HH:mm:ss.SSS Z');
+      const endLocal = moment(
+        `${req.query.endDate} 23:59:59.999 +08:00`,
+        'YYYY-MM-DD HH:mm:ss.SSS Z',
+      );
       startDate = startLocal.utc().toDate();
       endDate = endLocal.utc().toDate();
     } else {
-      const todayPHStart = moment(`${moment().format('YYYY-MM-DD')} 00:00:00 +08:00`, 'YYYY-MM-DD HH:mm:ss Z');
-      const todayPHEnd = moment(`${moment().format('YYYY-MM-DD')} 23:59:59.999 +08:00`, 'YYYY-MM-DD HH:mm:ss.SSS Z');
+      const todayPHStart = moment(
+        `${moment().format('YYYY-MM-DD')} 00:00:00 +08:00`,
+        'YYYY-MM-DD HH:mm:ss Z',
+      );
+      const todayPHEnd = moment(
+        `${moment().format('YYYY-MM-DD')} 23:59:59.999 +08:00`,
+        'YYYY-MM-DD HH:mm:ss.SSS Z',
+      );
       endDate = todayPHEnd.utc().toDate();
       startDate = todayPHStart.clone().subtract(29, 'days').utc().toDate();
     }
-    
+
     const totalPatients = await Patient.countDocuments({
-      registrationDate: { $gte: startDate, $lte: endDate }
+      registrationDate: { $gte: startDate, $lte: endDate },
     });
-    
+
     const dischargedPatients = await DischargedPatient.find({
-      dischargedAt: { $gte: startDate, $lte: endDate }
+      dischargedAt: { $gte: startDate, $lte: endDate },
     });
-    
+
     const totalAdmissions = dischargedPatients.length;
-    
+
     let totalExpenses = 0;
     let totalNetIncome = 0;
-    
-    dischargedPatients.forEach(discharged => {
+
+    dischargedPatients.forEach((discharged) => {
       if (discharged.transactions && Array.isArray(discharged.transactions)) {
-        discharged.transactions.forEach(transaction => {
+        discharged.transactions.forEach((transaction) => {
           if (transaction.services && Array.isArray(transaction.services)) {
-            transaction.services.forEach(service => {
+            transaction.services.forEach((service) => {
               const qty = service.qty || 1;
               if (service.procedureAmount) {
                 totalNetIncome += service.procedureAmount * qty;
@@ -403,7 +441,7 @@ app.get('/triagedashboard', async (req, res) => {
     });
 
     const totalRevenue = totalNetIncome + totalExpenses;
-    
+
     const stats = {
       totalPatients,
       patientsTrend: 0,
@@ -415,25 +453,25 @@ app.get('/triagedashboard', async (req, res) => {
       incomeTrend: 0,
       expenses: totalExpenses,
       expensesTrend: 0,
-      outstandingExpenses: 0
+      outstandingExpenses: 0,
     };
 
     const transactions = [];
     const revenueByDate = {};
-    dischargedPatients.forEach(discharged => {
+    dischargedPatients.forEach((discharged) => {
       if (discharged.transactions && Array.isArray(discharged.transactions)) {
-        discharged.transactions.forEach(transaction => {
+        discharged.transactions.forEach((transaction) => {
           if (transaction.services && Array.isArray(transaction.services)) {
-            transaction.services.forEach(service => {
+            transaction.services.forEach((service) => {
               const qty = service.qty || 1;
               const itemAmount = (service.itemAmount || 0) * qty;
               const procedureAmount = (service.procedureAmount || 0) * qty;
               let totalAmount = itemAmount + procedureAmount;
-              
+
               if (!service.procedureAmount && !service.itemAmount && service.amount) {
                 totalAmount = service.amount * qty;
               }
-              
+
               const revenueKey = moment(discharged.dischargedAt).utcOffset(8).format('YYYY-MM-DD');
               revenueByDate[revenueKey] = (revenueByDate[revenueKey] || 0) + (totalAmount || 0);
 
@@ -442,8 +480,10 @@ app.get('/triagedashboard', async (req, res) => {
                 patientName: discharged.fullName,
                 description: service.description || service.serviceType || 'N/A',
                 itemAmount: itemAmount,
-                procedureAmount: procedureAmount || ((!service.itemAmount && service.amount) ? service.amount * qty : 0),
-                totalAmount: totalAmount || (service.amount * qty) || 0
+                procedureAmount:
+                  procedureAmount ||
+                  (!service.itemAmount && service.amount ? service.amount * qty : 0),
+                totalAmount: totalAmount || service.amount * qty || 0,
               });
             });
           }
@@ -453,21 +493,35 @@ app.get('/triagedashboard', async (req, res) => {
 
     const registeredAgg = await Patient.aggregate([
       { $match: { registrationDate: { $gte: startDate, $lte: endDate } } },
-      { $group: { _id: { $dateToString: { format: '%Y-%m-%d', date: '$registrationDate', timezone: '+08:00' } }, count: { $sum: 1 } } },
-      { $sort: { _id: 1 } }
+      {
+        $group: {
+          _id: {
+            $dateToString: { format: '%Y-%m-%d', date: '$registrationDate', timezone: '+08:00' },
+          },
+          count: { $sum: 1 },
+        },
+      },
+      { $sort: { _id: 1 } },
     ]);
 
     const dischargedAgg = await mongoose.model('DischargedPatient').aggregate([
       { $match: { dischargedAt: { $gte: startDate, $lte: endDate } } },
-      { $group: { _id: { $dateToString: { format: '%Y-%m-%d', date: '$dischargedAt', timezone: '+08:00' } }, count: { $sum: 1 } } },
-      { $sort: { _id: 1 } }
+      {
+        $group: {
+          _id: {
+            $dateToString: { format: '%Y-%m-%d', date: '$dischargedAt', timezone: '+08:00' },
+          },
+          count: { $sum: 1 },
+        },
+      },
+      { $sort: { _id: 1 } },
     ]);
 
     const labels = [];
     const labelIndex = {};
     const current = moment(startDate);
     const end = moment(endDate);
-    
+
     while (current.isSameOrBefore(end, 'day')) {
       const key = current.format('YYYY-MM-DD');
       labels.push(key);
@@ -478,35 +532,36 @@ app.get('/triagedashboard', async (req, res) => {
     const registeredCounts = new Array(labels.length).fill(0);
     const dischargedCounts = new Array(labels.length).fill(0);
 
-    registeredAgg.forEach(row => {
+    registeredAgg.forEach((row) => {
       if (labelIndex[row._id] !== undefined) registeredCounts[labelIndex[row._id]] = row.count;
     });
-    dischargedAgg.forEach(row => {
+    dischargedAgg.forEach((row) => {
       if (labelIndex[row._id] !== undefined) dischargedCounts[labelIndex[row._id]] = row.count;
     });
 
-    const revenueSeries = labels.map(key => revenueByDate[key] || 0);
+    const revenueSeries = labels.map((key) => revenueByDate[key] || 0);
     const chartData = { labels, registeredCounts, dischargedCounts, revenueSeries };
 
     const deptAgg = await mongoose.model('DischargedPatient').aggregate([
       { $match: { dischargedAt: { $gte: startDate, $lte: endDate } } },
-      { $group: { 
+      {
+        $group: {
           _id: {
             $cond: [
-              { $or: [ { $eq: ['$department', null] }, { $eq: ['$department', ''] } ] },
+              { $or: [{ $eq: ['$department', null] }, { $eq: ['$department', ''] }] },
               'Unspecified',
-              '$department'
-            ]
+              '$department',
+            ],
           },
-          count: { $sum: 1 } 
-        } 
+          count: { $sum: 1 },
+        },
       },
-      { $sort: { count: -1 } }
+      { $sort: { count: -1 } },
     ]);
 
     const departmentData = {
-      labels: deptAgg.map(d => d._id || 'Unknown'),
-      counts: deptAgg.map(d => d.count)
+      labels: deptAgg.map((d) => d._id || 'Unknown'),
+      counts: deptAgg.map((d) => d.count),
     };
 
     res.render('triagedashboard', {
@@ -515,7 +570,7 @@ app.get('/triagedashboard', async (req, res) => {
       chartData,
       departmentData,
       username: req.session.username,
-      emailAddress: req.session.emailAddress
+      emailAddress: req.session.emailAddress,
     });
   } catch (error) {
     console.error('Triage Dashboard error:', error);
@@ -534,34 +589,43 @@ app.get('/admissiondashboard', async (req, res) => {
     let startDate, endDate;
     if (req.query.startDate && req.query.endDate) {
       const startLocal = moment(`${req.query.startDate} 00:00:00 +08:00`, 'YYYY-MM-DD HH:mm:ss Z');
-      const endLocal = moment(`${req.query.endDate} 23:59:59.999 +08:00`, 'YYYY-MM-DD HH:mm:ss.SSS Z');
+      const endLocal = moment(
+        `${req.query.endDate} 23:59:59.999 +08:00`,
+        'YYYY-MM-DD HH:mm:ss.SSS Z',
+      );
       startDate = startLocal.utc().toDate();
       endDate = endLocal.utc().toDate();
     } else {
-      const todayPHStart = moment(`${moment().format('YYYY-MM-DD')} 00:00:00 +08:00`, 'YYYY-MM-DD HH:mm:ss Z');
-      const todayPHEnd = moment(`${moment().format('YYYY-MM-DD')} 23:59:59.999 +08:00`, 'YYYY-MM-DD HH:mm:ss.SSS Z');
+      const todayPHStart = moment(
+        `${moment().format('YYYY-MM-DD')} 00:00:00 +08:00`,
+        'YYYY-MM-DD HH:mm:ss Z',
+      );
+      const todayPHEnd = moment(
+        `${moment().format('YYYY-MM-DD')} 23:59:59.999 +08:00`,
+        'YYYY-MM-DD HH:mm:ss.SSS Z',
+      );
       endDate = todayPHEnd.utc().toDate();
       startDate = todayPHStart.clone().subtract(29, 'days').utc().toDate();
     }
-    
+
     const totalPatients = await Patient.countDocuments({
-      registrationDate: { $gte: startDate, $lte: endDate }
+      registrationDate: { $gte: startDate, $lte: endDate },
     });
-    
+
     const dischargedPatients = await DischargedPatient.find({
-      dischargedAt: { $gte: startDate, $lte: endDate }
+      dischargedAt: { $gte: startDate, $lte: endDate },
     });
-    
+
     const totalAdmissions = dischargedPatients.length;
-    
+
     let totalExpenses = 0;
     let totalNetIncome = 0;
-    
-    dischargedPatients.forEach(discharged => {
+
+    dischargedPatients.forEach((discharged) => {
       if (discharged.transactions && Array.isArray(discharged.transactions)) {
-        discharged.transactions.forEach(transaction => {
+        discharged.transactions.forEach((transaction) => {
           if (transaction.services && Array.isArray(transaction.services)) {
-            transaction.services.forEach(service => {
+            transaction.services.forEach((service) => {
               const qty = service.qty || 1;
               if (service.procedureAmount) {
                 totalNetIncome += service.procedureAmount * qty;
@@ -579,7 +643,7 @@ app.get('/admissiondashboard', async (req, res) => {
     });
 
     const totalRevenue = totalNetIncome + totalExpenses;
-    
+
     const stats = {
       totalPatients,
       patientsTrend: 0,
@@ -591,25 +655,25 @@ app.get('/admissiondashboard', async (req, res) => {
       incomeTrend: 0,
       expenses: totalExpenses,
       expensesTrend: 0,
-      outstandingExpenses: 0
+      outstandingExpenses: 0,
     };
 
     const transactions = [];
     const revenueByDate = {};
-    dischargedPatients.forEach(discharged => {
+    dischargedPatients.forEach((discharged) => {
       if (discharged.transactions && Array.isArray(discharged.transactions)) {
-        discharged.transactions.forEach(transaction => {
+        discharged.transactions.forEach((transaction) => {
           if (transaction.services && Array.isArray(transaction.services)) {
-            transaction.services.forEach(service => {
+            transaction.services.forEach((service) => {
               const qty = service.qty || 1;
               const itemAmount = (service.itemAmount || 0) * qty;
               const procedureAmount = (service.procedureAmount || 0) * qty;
               let totalAmount = itemAmount + procedureAmount;
-              
+
               if (!service.procedureAmount && !service.itemAmount && service.amount) {
                 totalAmount = service.amount * qty;
               }
-              
+
               const revenueKey = moment(discharged.dischargedAt).utcOffset(8).format('YYYY-MM-DD');
               revenueByDate[revenueKey] = (revenueByDate[revenueKey] || 0) + (totalAmount || 0);
 
@@ -618,8 +682,10 @@ app.get('/admissiondashboard', async (req, res) => {
                 patientName: discharged.fullName,
                 description: service.description || service.serviceType || 'N/A',
                 itemAmount: itemAmount,
-                procedureAmount: procedureAmount || ((!service.itemAmount && service.amount) ? service.amount * qty : 0),
-                totalAmount: totalAmount || (service.amount * qty) || 0
+                procedureAmount:
+                  procedureAmount ||
+                  (!service.itemAmount && service.amount ? service.amount * qty : 0),
+                totalAmount: totalAmount || service.amount * qty || 0,
               });
             });
           }
@@ -629,21 +695,35 @@ app.get('/admissiondashboard', async (req, res) => {
 
     const registeredAgg = await Patient.aggregate([
       { $match: { registrationDate: { $gte: startDate, $lte: endDate } } },
-      { $group: { _id: { $dateToString: { format: '%Y-%m-%d', date: '$registrationDate', timezone: '+08:00' } }, count: { $sum: 1 } } },
-      { $sort: { _id: 1 } }
+      {
+        $group: {
+          _id: {
+            $dateToString: { format: '%Y-%m-%d', date: '$registrationDate', timezone: '+08:00' },
+          },
+          count: { $sum: 1 },
+        },
+      },
+      { $sort: { _id: 1 } },
     ]);
 
     const dischargedAgg = await mongoose.model('DischargedPatient').aggregate([
       { $match: { dischargedAt: { $gte: startDate, $lte: endDate } } },
-      { $group: { _id: { $dateToString: { format: '%Y-%m-%d', date: '$dischargedAt', timezone: '+08:00' } }, count: { $sum: 1 } } },
-      { $sort: { _id: 1 } }
+      {
+        $group: {
+          _id: {
+            $dateToString: { format: '%Y-%m-%d', date: '$dischargedAt', timezone: '+08:00' },
+          },
+          count: { $sum: 1 },
+        },
+      },
+      { $sort: { _id: 1 } },
     ]);
 
     const labels = [];
     const labelIndex = {};
     const current = moment(startDate);
     const end = moment(endDate);
-    
+
     while (current.isSameOrBefore(end, 'day')) {
       const key = current.format('YYYY-MM-DD');
       labels.push(key);
@@ -654,35 +734,36 @@ app.get('/admissiondashboard', async (req, res) => {
     const registeredCounts = new Array(labels.length).fill(0);
     const dischargedCounts = new Array(labels.length).fill(0);
 
-    registeredAgg.forEach(row => {
+    registeredAgg.forEach((row) => {
       if (labelIndex[row._id] !== undefined) registeredCounts[labelIndex[row._id]] = row.count;
     });
-    dischargedAgg.forEach(row => {
+    dischargedAgg.forEach((row) => {
       if (labelIndex[row._id] !== undefined) dischargedCounts[labelIndex[row._id]] = row.count;
     });
 
-    const revenueSeries = labels.map(key => revenueByDate[key] || 0);
+    const revenueSeries = labels.map((key) => revenueByDate[key] || 0);
     const chartData = { labels, registeredCounts, dischargedCounts, revenueSeries };
 
     const deptAgg = await mongoose.model('DischargedPatient').aggregate([
       { $match: { dischargedAt: { $gte: startDate, $lte: endDate } } },
-      { $group: { 
+      {
+        $group: {
           _id: {
             $cond: [
-              { $or: [ { $eq: ['$department', null] }, { $eq: ['$department', ''] } ] },
+              { $or: [{ $eq: ['$department', null] }, { $eq: ['$department', ''] }] },
               'Unspecified',
-              '$department'
-            ]
+              '$department',
+            ],
           },
-          count: { $sum: 1 } 
-        } 
+          count: { $sum: 1 },
+        },
       },
-      { $sort: { count: -1 } }
+      { $sort: { count: -1 } },
     ]);
 
     const departmentData = {
-      labels: deptAgg.map(d => d._id || 'Unknown'),
-      counts: deptAgg.map(d => d.count)
+      labels: deptAgg.map((d) => d._id || 'Unknown'),
+      counts: deptAgg.map((d) => d.count),
     };
 
     res.render('admissiondashboard', {
@@ -691,7 +772,7 @@ app.get('/admissiondashboard', async (req, res) => {
       chartData,
       departmentData,
       username: req.session.username,
-      emailAddress: req.session.emailAddress
+      emailAddress: req.session.emailAddress,
     });
   } catch (error) {
     console.error('Admission Dashboard error:', error);
@@ -710,34 +791,43 @@ app.get('/opddashboard', async (req, res) => {
     let startDate, endDate;
     if (req.query.startDate && req.query.endDate) {
       const startLocal = moment(`${req.query.startDate} 00:00:00 +08:00`, 'YYYY-MM-DD HH:mm:ss Z');
-      const endLocal = moment(`${req.query.endDate} 23:59:59.999 +08:00`, 'YYYY-MM-DD HH:mm:ss.SSS Z');
+      const endLocal = moment(
+        `${req.query.endDate} 23:59:59.999 +08:00`,
+        'YYYY-MM-DD HH:mm:ss.SSS Z',
+      );
       startDate = startLocal.utc().toDate();
       endDate = endLocal.utc().toDate();
     } else {
-      const todayPHStart = moment(`${moment().format('YYYY-MM-DD')} 00:00:00 +08:00`, 'YYYY-MM-DD HH:mm:ss Z');
-      const todayPHEnd = moment(`${moment().format('YYYY-MM-DD')} 23:59:59.999 +08:00`, 'YYYY-MM-DD HH:mm:ss.SSS Z');
+      const todayPHStart = moment(
+        `${moment().format('YYYY-MM-DD')} 00:00:00 +08:00`,
+        'YYYY-MM-DD HH:mm:ss Z',
+      );
+      const todayPHEnd = moment(
+        `${moment().format('YYYY-MM-DD')} 23:59:59.999 +08:00`,
+        'YYYY-MM-DD HH:mm:ss.SSS Z',
+      );
       endDate = todayPHEnd.utc().toDate();
       startDate = todayPHStart.clone().subtract(29, 'days').utc().toDate();
     }
-    
+
     const totalPatients = await Patient.countDocuments({
-      registrationDate: { $gte: startDate, $lte: endDate }
+      registrationDate: { $gte: startDate, $lte: endDate },
     });
-    
+
     const dischargedPatients = await DischargedPatient.find({
-      dischargedAt: { $gte: startDate, $lte: endDate }
+      dischargedAt: { $gte: startDate, $lte: endDate },
     });
-    
+
     const totalAdmissions = dischargedPatients.length;
-    
+
     let totalExpenses = 0;
     let totalNetIncome = 0;
-    
-    dischargedPatients.forEach(discharged => {
+
+    dischargedPatients.forEach((discharged) => {
       if (discharged.transactions && Array.isArray(discharged.transactions)) {
-        discharged.transactions.forEach(transaction => {
+        discharged.transactions.forEach((transaction) => {
           if (transaction.services && Array.isArray(transaction.services)) {
-            transaction.services.forEach(service => {
+            transaction.services.forEach((service) => {
               const qty = service.qty || 1;
               if (service.procedureAmount) {
                 totalNetIncome += service.procedureAmount * qty;
@@ -755,7 +845,7 @@ app.get('/opddashboard', async (req, res) => {
     });
 
     const totalRevenue = totalNetIncome + totalExpenses;
-    
+
     const stats = {
       totalPatients,
       patientsTrend: 0,
@@ -767,25 +857,25 @@ app.get('/opddashboard', async (req, res) => {
       incomeTrend: 0,
       expenses: totalExpenses,
       expensesTrend: 0,
-      outstandingExpenses: 0
+      outstandingExpenses: 0,
     };
 
     const transactions = [];
     const revenueByDate = {};
-    dischargedPatients.forEach(discharged => {
+    dischargedPatients.forEach((discharged) => {
       if (discharged.transactions && Array.isArray(discharged.transactions)) {
-        discharged.transactions.forEach(transaction => {
+        discharged.transactions.forEach((transaction) => {
           if (transaction.services && Array.isArray(transaction.services)) {
-            transaction.services.forEach(service => {
+            transaction.services.forEach((service) => {
               const qty = service.qty || 1;
               const itemAmount = (service.itemAmount || 0) * qty;
               const procedureAmount = (service.procedureAmount || 0) * qty;
               let totalAmount = itemAmount + procedureAmount;
-              
+
               if (!service.procedureAmount && !service.itemAmount && service.amount) {
                 totalAmount = service.amount * qty;
               }
-              
+
               const revenueKey = moment(discharged.dischargedAt).utcOffset(8).format('YYYY-MM-DD');
               revenueByDate[revenueKey] = (revenueByDate[revenueKey] || 0) + (totalAmount || 0);
 
@@ -794,8 +884,10 @@ app.get('/opddashboard', async (req, res) => {
                 patientName: discharged.fullName,
                 description: service.description || service.serviceType || 'N/A',
                 itemAmount: itemAmount,
-                procedureAmount: procedureAmount || ((!service.itemAmount && service.amount) ? service.amount * qty : 0),
-                totalAmount: totalAmount || (service.amount * qty) || 0
+                procedureAmount:
+                  procedureAmount ||
+                  (!service.itemAmount && service.amount ? service.amount * qty : 0),
+                totalAmount: totalAmount || service.amount * qty || 0,
               });
             });
           }
@@ -805,21 +897,35 @@ app.get('/opddashboard', async (req, res) => {
 
     const registeredAgg = await Patient.aggregate([
       { $match: { registrationDate: { $gte: startDate, $lte: endDate } } },
-      { $group: { _id: { $dateToString: { format: '%Y-%m-%d', date: '$registrationDate', timezone: '+08:00' } }, count: { $sum: 1 } } },
-      { $sort: { _id: 1 } }
+      {
+        $group: {
+          _id: {
+            $dateToString: { format: '%Y-%m-%d', date: '$registrationDate', timezone: '+08:00' },
+          },
+          count: { $sum: 1 },
+        },
+      },
+      { $sort: { _id: 1 } },
     ]);
 
     const dischargedAgg = await mongoose.model('DischargedPatient').aggregate([
       { $match: { dischargedAt: { $gte: startDate, $lte: endDate } } },
-      { $group: { _id: { $dateToString: { format: '%Y-%m-%d', date: '$dischargedAt', timezone: '+08:00' } }, count: { $sum: 1 } } },
-      { $sort: { _id: 1 } }
+      {
+        $group: {
+          _id: {
+            $dateToString: { format: '%Y-%m-%d', date: '$dischargedAt', timezone: '+08:00' },
+          },
+          count: { $sum: 1 },
+        },
+      },
+      { $sort: { _id: 1 } },
     ]);
 
     const labels = [];
     const labelIndex = {};
     const current = moment(startDate);
     const end = moment(endDate);
-    
+
     while (current.isSameOrBefore(end, 'day')) {
       const key = current.format('YYYY-MM-DD');
       labels.push(key);
@@ -830,35 +936,36 @@ app.get('/opddashboard', async (req, res) => {
     const registeredCounts = new Array(labels.length).fill(0);
     const dischargedCounts = new Array(labels.length).fill(0);
 
-    registeredAgg.forEach(row => {
+    registeredAgg.forEach((row) => {
       if (labelIndex[row._id] !== undefined) registeredCounts[labelIndex[row._id]] = row.count;
     });
-    dischargedAgg.forEach(row => {
+    dischargedAgg.forEach((row) => {
       if (labelIndex[row._id] !== undefined) dischargedCounts[labelIndex[row._id]] = row.count;
     });
 
-    const revenueSeries = labels.map(key => revenueByDate[key] || 0);
+    const revenueSeries = labels.map((key) => revenueByDate[key] || 0);
     const chartData = { labels, registeredCounts, dischargedCounts, revenueSeries };
 
     const deptAgg = await mongoose.model('DischargedPatient').aggregate([
       { $match: { dischargedAt: { $gte: startDate, $lte: endDate } } },
-      { $group: { 
+      {
+        $group: {
           _id: {
             $cond: [
-              { $or: [ { $eq: ['$department', null] }, { $eq: ['$department', ''] } ] },
+              { $or: [{ $eq: ['$department', null] }, { $eq: ['$department', ''] }] },
               'Unspecified',
-              '$department'
-            ]
+              '$department',
+            ],
           },
-          count: { $sum: 1 } 
-        } 
+          count: { $sum: 1 },
+        },
       },
-      { $sort: { count: -1 } }
+      { $sort: { count: -1 } },
     ]);
 
     const departmentData = {
-      labels: deptAgg.map(d => d._id || 'Unknown'),
-      counts: deptAgg.map(d => d.count)
+      labels: deptAgg.map((d) => d._id || 'Unknown'),
+      counts: deptAgg.map((d) => d.count),
     };
 
     res.render('opddashboard', {
@@ -867,7 +974,7 @@ app.get('/opddashboard', async (req, res) => {
       chartData,
       departmentData,
       username: req.session.username,
-      emailAddress: req.session.emailAddress
+      emailAddress: req.session.emailAddress,
     });
   } catch (error) {
     console.error('OPD Dashboard error:', error);
@@ -886,34 +993,43 @@ app.get('/emergencydashboard', async (req, res) => {
     let startDate, endDate;
     if (req.query.startDate && req.query.endDate) {
       const startLocal = moment(`${req.query.startDate} 00:00:00 +08:00`, 'YYYY-MM-DD HH:mm:ss Z');
-      const endLocal = moment(`${req.query.endDate} 23:59:59.999 +08:00`, 'YYYY-MM-DD HH:mm:ss.SSS Z');
+      const endLocal = moment(
+        `${req.query.endDate} 23:59:59.999 +08:00`,
+        'YYYY-MM-DD HH:mm:ss.SSS Z',
+      );
       startDate = startLocal.utc().toDate();
       endDate = endLocal.utc().toDate();
     } else {
-      const todayPHStart = moment(`${moment().format('YYYY-MM-DD')} 00:00:00 +08:00`, 'YYYY-MM-DD HH:mm:ss Z');
-      const todayPHEnd = moment(`${moment().format('YYYY-MM-DD')} 23:59:59.999 +08:00`, 'YYYY-MM-DD HH:mm:ss.SSS Z');
+      const todayPHStart = moment(
+        `${moment().format('YYYY-MM-DD')} 00:00:00 +08:00`,
+        'YYYY-MM-DD HH:mm:ss Z',
+      );
+      const todayPHEnd = moment(
+        `${moment().format('YYYY-MM-DD')} 23:59:59.999 +08:00`,
+        'YYYY-MM-DD HH:mm:ss.SSS Z',
+      );
       endDate = todayPHEnd.utc().toDate();
       startDate = todayPHStart.clone().subtract(29, 'days').utc().toDate();
     }
-    
+
     const totalPatients = await Patient.countDocuments({
-      registrationDate: { $gte: startDate, $lte: endDate }
+      registrationDate: { $gte: startDate, $lte: endDate },
     });
-    
+
     const dischargedPatients = await DischargedPatient.find({
-      dischargedAt: { $gte: startDate, $lte: endDate }
+      dischargedAt: { $gte: startDate, $lte: endDate },
     });
-    
+
     const totalAdmissions = dischargedPatients.length;
-    
+
     let totalExpenses = 0;
     let totalNetIncome = 0;
-    
-    dischargedPatients.forEach(discharged => {
+
+    dischargedPatients.forEach((discharged) => {
       if (discharged.transactions && Array.isArray(discharged.transactions)) {
-        discharged.transactions.forEach(transaction => {
+        discharged.transactions.forEach((transaction) => {
           if (transaction.services && Array.isArray(transaction.services)) {
-            transaction.services.forEach(service => {
+            transaction.services.forEach((service) => {
               const qty = service.qty || 1;
               if (service.procedureAmount) {
                 totalNetIncome += service.procedureAmount * qty;
@@ -931,7 +1047,7 @@ app.get('/emergencydashboard', async (req, res) => {
     });
 
     const totalRevenue = totalNetIncome + totalExpenses;
-    
+
     const stats = {
       totalPatients,
       patientsTrend: 0,
@@ -943,25 +1059,25 @@ app.get('/emergencydashboard', async (req, res) => {
       incomeTrend: 0,
       expenses: totalExpenses,
       expensesTrend: 0,
-      outstandingExpenses: 0
+      outstandingExpenses: 0,
     };
 
     const transactions = [];
     const revenueByDate = {};
-    dischargedPatients.forEach(discharged => {
+    dischargedPatients.forEach((discharged) => {
       if (discharged.transactions && Array.isArray(discharged.transactions)) {
-        discharged.transactions.forEach(transaction => {
+        discharged.transactions.forEach((transaction) => {
           if (transaction.services && Array.isArray(transaction.services)) {
-            transaction.services.forEach(service => {
+            transaction.services.forEach((service) => {
               const qty = service.qty || 1;
               const itemAmount = (service.itemAmount || 0) * qty;
               const procedureAmount = (service.procedureAmount || 0) * qty;
               let totalAmount = itemAmount + procedureAmount;
-              
+
               if (!service.procedureAmount && !service.itemAmount && service.amount) {
                 totalAmount = service.amount * qty;
               }
-              
+
               const revenueKey = moment(discharged.dischargedAt).utcOffset(8).format('YYYY-MM-DD');
               revenueByDate[revenueKey] = (revenueByDate[revenueKey] || 0) + (totalAmount || 0);
 
@@ -970,8 +1086,10 @@ app.get('/emergencydashboard', async (req, res) => {
                 patientName: discharged.fullName,
                 description: service.description || service.serviceType || 'N/A',
                 itemAmount: itemAmount,
-                procedureAmount: procedureAmount || ((!service.itemAmount && service.amount) ? service.amount * qty : 0),
-                totalAmount: totalAmount || (service.amount * qty) || 0
+                procedureAmount:
+                  procedureAmount ||
+                  (!service.itemAmount && service.amount ? service.amount * qty : 0),
+                totalAmount: totalAmount || service.amount * qty || 0,
               });
             });
           }
@@ -981,21 +1099,35 @@ app.get('/emergencydashboard', async (req, res) => {
 
     const registeredAgg = await Patient.aggregate([
       { $match: { registrationDate: { $gte: startDate, $lte: endDate } } },
-      { $group: { _id: { $dateToString: { format: '%Y-%m-%d', date: '$registrationDate', timezone: '+08:00' } }, count: { $sum: 1 } } },
-      { $sort: { _id: 1 } }
+      {
+        $group: {
+          _id: {
+            $dateToString: { format: '%Y-%m-%d', date: '$registrationDate', timezone: '+08:00' },
+          },
+          count: { $sum: 1 },
+        },
+      },
+      { $sort: { _id: 1 } },
     ]);
 
     const dischargedAgg = await mongoose.model('DischargedPatient').aggregate([
       { $match: { dischargedAt: { $gte: startDate, $lte: endDate } } },
-      { $group: { _id: { $dateToString: { format: '%Y-%m-%d', date: '$dischargedAt', timezone: '+08:00' } }, count: { $sum: 1 } } },
-      { $sort: { _id: 1 } }
+      {
+        $group: {
+          _id: {
+            $dateToString: { format: '%Y-%m-%d', date: '$dischargedAt', timezone: '+08:00' },
+          },
+          count: { $sum: 1 },
+        },
+      },
+      { $sort: { _id: 1 } },
     ]);
 
     const labels = [];
     const labelIndex = {};
     const current = moment(startDate);
     const end = moment(endDate);
-    
+
     while (current.isSameOrBefore(end, 'day')) {
       const key = current.format('YYYY-MM-DD');
       labels.push(key);
@@ -1006,35 +1138,36 @@ app.get('/emergencydashboard', async (req, res) => {
     const registeredCounts = new Array(labels.length).fill(0);
     const dischargedCounts = new Array(labels.length).fill(0);
 
-    registeredAgg.forEach(row => {
+    registeredAgg.forEach((row) => {
       if (labelIndex[row._id] !== undefined) registeredCounts[labelIndex[row._id]] = row.count;
     });
-    dischargedAgg.forEach(row => {
+    dischargedAgg.forEach((row) => {
       if (labelIndex[row._id] !== undefined) dischargedCounts[labelIndex[row._id]] = row.count;
     });
 
-    const revenueSeries = labels.map(key => revenueByDate[key] || 0);
+    const revenueSeries = labels.map((key) => revenueByDate[key] || 0);
     const chartData = { labels, registeredCounts, dischargedCounts, revenueSeries };
 
     const deptAgg = await mongoose.model('DischargedPatient').aggregate([
       { $match: { dischargedAt: { $gte: startDate, $lte: endDate } } },
-      { $group: { 
+      {
+        $group: {
           _id: {
             $cond: [
-              { $or: [ { $eq: ['$department', null] }, { $eq: ['$department', ''] } ] },
+              { $or: [{ $eq: ['$department', null] }, { $eq: ['$department', ''] }] },
               'Unspecified',
-              '$department'
-            ]
+              '$department',
+            ],
           },
-          count: { $sum: 1 } 
-        } 
+          count: { $sum: 1 },
+        },
       },
-      { $sort: { count: -1 } }
+      { $sort: { count: -1 } },
     ]);
 
     const departmentData = {
-      labels: deptAgg.map(d => d._id || 'Unknown'),
-      counts: deptAgg.map(d => d.count)
+      labels: deptAgg.map((d) => d._id || 'Unknown'),
+      counts: deptAgg.map((d) => d.count),
     };
 
     res.render('emergencydashboard', {
@@ -1043,7 +1176,7 @@ app.get('/emergencydashboard', async (req, res) => {
       chartData,
       departmentData,
       username: req.session.username,
-      emailAddress: req.session.emailAddress
+      emailAddress: req.session.emailAddress,
     });
   } catch (error) {
     console.error('Emergency Dashboard error:', error);
@@ -1062,34 +1195,43 @@ app.get('/billingdashboard', async (req, res) => {
     let startDate, endDate;
     if (req.query.startDate && req.query.endDate) {
       const startLocal = moment(`${req.query.startDate} 00:00:00 +08:00`, 'YYYY-MM-DD HH:mm:ss Z');
-      const endLocal = moment(`${req.query.endDate} 23:59:59.999 +08:00`, 'YYYY-MM-DD HH:mm:ss.SSS Z');
+      const endLocal = moment(
+        `${req.query.endDate} 23:59:59.999 +08:00`,
+        'YYYY-MM-DD HH:mm:ss.SSS Z',
+      );
       startDate = startLocal.utc().toDate();
       endDate = endLocal.utc().toDate();
     } else {
-      const todayPHStart = moment(`${moment().format('YYYY-MM-DD')} 00:00:00 +08:00`, 'YYYY-MM-DD HH:mm:ss Z');
-      const todayPHEnd = moment(`${moment().format('YYYY-MM-DD')} 23:59:59.999 +08:00`, 'YYYY-MM-DD HH:mm:ss.SSS Z');
+      const todayPHStart = moment(
+        `${moment().format('YYYY-MM-DD')} 00:00:00 +08:00`,
+        'YYYY-MM-DD HH:mm:ss Z',
+      );
+      const todayPHEnd = moment(
+        `${moment().format('YYYY-MM-DD')} 23:59:59.999 +08:00`,
+        'YYYY-MM-DD HH:mm:ss.SSS Z',
+      );
       endDate = todayPHEnd.utc().toDate();
       startDate = todayPHStart.clone().subtract(29, 'days').utc().toDate();
     }
-    
+
     const totalPatients = await Patient.countDocuments({
-      registrationDate: { $gte: startDate, $lte: endDate }
+      registrationDate: { $gte: startDate, $lte: endDate },
     });
-    
+
     const dischargedPatients = await DischargedPatient.find({
-      dischargedAt: { $gte: startDate, $lte: endDate }
+      dischargedAt: { $gte: startDate, $lte: endDate },
     });
-    
+
     const totalAdmissions = dischargedPatients.length;
-    
+
     let totalExpenses = 0;
     let totalNetIncome = 0;
-    
-    dischargedPatients.forEach(discharged => {
+
+    dischargedPatients.forEach((discharged) => {
       if (discharged.transactions && Array.isArray(discharged.transactions)) {
-        discharged.transactions.forEach(transaction => {
+        discharged.transactions.forEach((transaction) => {
           if (transaction.services && Array.isArray(transaction.services)) {
-            transaction.services.forEach(service => {
+            transaction.services.forEach((service) => {
               const qty = service.qty || 1;
               if (service.procedureAmount) {
                 totalNetIncome += service.procedureAmount * qty;
@@ -1107,7 +1249,7 @@ app.get('/billingdashboard', async (req, res) => {
     });
 
     const totalRevenue = totalNetIncome + totalExpenses;
-    
+
     const stats = {
       totalPatients,
       patientsTrend: 0,
@@ -1119,25 +1261,25 @@ app.get('/billingdashboard', async (req, res) => {
       incomeTrend: 0,
       expenses: totalExpenses,
       expensesTrend: 0,
-      outstandingExpenses: 0
+      outstandingExpenses: 0,
     };
 
     const transactions = [];
     const revenueByDate = {};
-    dischargedPatients.forEach(discharged => {
+    dischargedPatients.forEach((discharged) => {
       if (discharged.transactions && Array.isArray(discharged.transactions)) {
-        discharged.transactions.forEach(transaction => {
+        discharged.transactions.forEach((transaction) => {
           if (transaction.services && Array.isArray(transaction.services)) {
-            transaction.services.forEach(service => {
+            transaction.services.forEach((service) => {
               const qty = service.qty || 1;
               const itemAmount = (service.itemAmount || 0) * qty;
               const procedureAmount = (service.procedureAmount || 0) * qty;
               let totalAmount = itemAmount + procedureAmount;
-              
+
               if (!service.procedureAmount && !service.itemAmount && service.amount) {
                 totalAmount = service.amount * qty;
               }
-              
+
               const revenueKey = moment(discharged.dischargedAt).utcOffset(8).format('YYYY-MM-DD');
               revenueByDate[revenueKey] = (revenueByDate[revenueKey] || 0) + (totalAmount || 0);
 
@@ -1146,8 +1288,10 @@ app.get('/billingdashboard', async (req, res) => {
                 patientName: discharged.fullName,
                 description: service.description || service.serviceType || 'N/A',
                 itemAmount: itemAmount,
-                procedureAmount: procedureAmount || ((!service.itemAmount && service.amount) ? service.amount * qty : 0),
-                totalAmount: totalAmount || (service.amount * qty) || 0
+                procedureAmount:
+                  procedureAmount ||
+                  (!service.itemAmount && service.amount ? service.amount * qty : 0),
+                totalAmount: totalAmount || service.amount * qty || 0,
               });
             });
           }
@@ -1157,21 +1301,35 @@ app.get('/billingdashboard', async (req, res) => {
 
     const registeredAgg = await Patient.aggregate([
       { $match: { registrationDate: { $gte: startDate, $lte: endDate } } },
-      { $group: { _id: { $dateToString: { format: '%Y-%m-%d', date: '$registrationDate', timezone: '+08:00' } }, count: { $sum: 1 } } },
-      { $sort: { _id: 1 } }
+      {
+        $group: {
+          _id: {
+            $dateToString: { format: '%Y-%m-%d', date: '$registrationDate', timezone: '+08:00' },
+          },
+          count: { $sum: 1 },
+        },
+      },
+      { $sort: { _id: 1 } },
     ]);
 
     const dischargedAgg = await mongoose.model('DischargedPatient').aggregate([
       { $match: { dischargedAt: { $gte: startDate, $lte: endDate } } },
-      { $group: { _id: { $dateToString: { format: '%Y-%m-%d', date: '$dischargedAt', timezone: '+08:00' } }, count: { $sum: 1 } } },
-      { $sort: { _id: 1 } }
+      {
+        $group: {
+          _id: {
+            $dateToString: { format: '%Y-%m-%d', date: '$dischargedAt', timezone: '+08:00' },
+          },
+          count: { $sum: 1 },
+        },
+      },
+      { $sort: { _id: 1 } },
     ]);
 
     const labels = [];
     const labelIndex = {};
     const current = moment(startDate);
     const end = moment(endDate);
-    
+
     while (current.isSameOrBefore(end, 'day')) {
       const key = current.format('YYYY-MM-DD');
       labels.push(key);
@@ -1182,35 +1340,36 @@ app.get('/billingdashboard', async (req, res) => {
     const registeredCounts = new Array(labels.length).fill(0);
     const dischargedCounts = new Array(labels.length).fill(0);
 
-    registeredAgg.forEach(row => {
+    registeredAgg.forEach((row) => {
       if (labelIndex[row._id] !== undefined) registeredCounts[labelIndex[row._id]] = row.count;
     });
-    dischargedAgg.forEach(row => {
+    dischargedAgg.forEach((row) => {
       if (labelIndex[row._id] !== undefined) dischargedCounts[labelIndex[row._id]] = row.count;
     });
 
-    const revenueSeries = labels.map(key => revenueByDate[key] || 0);
+    const revenueSeries = labels.map((key) => revenueByDate[key] || 0);
     const chartData = { labels, registeredCounts, dischargedCounts, revenueSeries };
 
     const deptAgg = await mongoose.model('DischargedPatient').aggregate([
       { $match: { dischargedAt: { $gte: startDate, $lte: endDate } } },
-      { $group: { 
+      {
+        $group: {
           _id: {
             $cond: [
-              { $or: [ { $eq: ['$department', null] }, { $eq: ['$department', ''] } ] },
+              { $or: [{ $eq: ['$department', null] }, { $eq: ['$department', ''] }] },
               'Unspecified',
-              '$department'
-            ]
+              '$department',
+            ],
           },
-          count: { $sum: 1 } 
-        } 
+          count: { $sum: 1 },
+        },
       },
-      { $sort: { count: -1 } }
+      { $sort: { count: -1 } },
     ]);
 
     const departmentData = {
-      labels: deptAgg.map(d => d._id || 'Unknown'),
-      counts: deptAgg.map(d => d.count)
+      labels: deptAgg.map((d) => d._id || 'Unknown'),
+      counts: deptAgg.map((d) => d.count),
     };
 
     res.render('billingdashboard', {
@@ -1219,7 +1378,7 @@ app.get('/billingdashboard', async (req, res) => {
       chartData,
       departmentData,
       username: req.session.username,
-      emailAddress: req.session.emailAddress
+      emailAddress: req.session.emailAddress,
     });
   } catch (error) {
     console.error('Billing Dashboard error:', error);
@@ -1238,34 +1397,43 @@ app.get('/cashierdashboard', async (req, res) => {
     let startDate, endDate;
     if (req.query.startDate && req.query.endDate) {
       const startLocal = moment(`${req.query.startDate} 00:00:00 +08:00`, 'YYYY-MM-DD HH:mm:ss Z');
-      const endLocal = moment(`${req.query.endDate} 23:59:59.999 +08:00`, 'YYYY-MM-DD HH:mm:ss.SSS Z');
+      const endLocal = moment(
+        `${req.query.endDate} 23:59:59.999 +08:00`,
+        'YYYY-MM-DD HH:mm:ss.SSS Z',
+      );
       startDate = startLocal.utc().toDate();
       endDate = endLocal.utc().toDate();
     } else {
-      const todayPHStart = moment(`${moment().format('YYYY-MM-DD')} 00:00:00 +08:00`, 'YYYY-MM-DD HH:mm:ss Z');
-      const todayPHEnd = moment(`${moment().format('YYYY-MM-DD')} 23:59:59.999 +08:00`, 'YYYY-MM-DD HH:mm:ss.SSS Z');
+      const todayPHStart = moment(
+        `${moment().format('YYYY-MM-DD')} 00:00:00 +08:00`,
+        'YYYY-MM-DD HH:mm:ss Z',
+      );
+      const todayPHEnd = moment(
+        `${moment().format('YYYY-MM-DD')} 23:59:59.999 +08:00`,
+        'YYYY-MM-DD HH:mm:ss.SSS Z',
+      );
       endDate = todayPHEnd.utc().toDate();
       startDate = todayPHStart.clone().subtract(29, 'days').utc().toDate();
     }
-    
+
     const totalPatients = await Patient.countDocuments({
-      registrationDate: { $gte: startDate, $lte: endDate }
+      registrationDate: { $gte: startDate, $lte: endDate },
     });
-    
+
     const dischargedPatients = await DischargedPatient.find({
-      dischargedAt: { $gte: startDate, $lte: endDate }
+      dischargedAt: { $gte: startDate, $lte: endDate },
     });
-    
+
     const totalAdmissions = dischargedPatients.length;
-    
+
     let totalExpenses = 0;
     let totalNetIncome = 0;
-    
-    dischargedPatients.forEach(discharged => {
+
+    dischargedPatients.forEach((discharged) => {
       if (discharged.transactions && Array.isArray(discharged.transactions)) {
-        discharged.transactions.forEach(transaction => {
+        discharged.transactions.forEach((transaction) => {
           if (transaction.services && Array.isArray(transaction.services)) {
-            transaction.services.forEach(service => {
+            transaction.services.forEach((service) => {
               const qty = service.qty || 1;
               if (service.procedureAmount) {
                 totalNetIncome += service.procedureAmount * qty;
@@ -1283,7 +1451,7 @@ app.get('/cashierdashboard', async (req, res) => {
     });
 
     const totalRevenue = totalNetIncome + totalExpenses;
-    
+
     const stats = {
       totalPatients,
       patientsTrend: 0,
@@ -1295,25 +1463,25 @@ app.get('/cashierdashboard', async (req, res) => {
       incomeTrend: 0,
       expenses: totalExpenses,
       expensesTrend: 0,
-      outstandingExpenses: 0
+      outstandingExpenses: 0,
     };
 
     const transactions = [];
     const revenueByDate = {};
-    dischargedPatients.forEach(discharged => {
+    dischargedPatients.forEach((discharged) => {
       if (discharged.transactions && Array.isArray(discharged.transactions)) {
-        discharged.transactions.forEach(transaction => {
+        discharged.transactions.forEach((transaction) => {
           if (transaction.services && Array.isArray(transaction.services)) {
-            transaction.services.forEach(service => {
+            transaction.services.forEach((service) => {
               const qty = service.qty || 1;
               const itemAmount = (service.itemAmount || 0) * qty;
               const procedureAmount = (service.procedureAmount || 0) * qty;
               let totalAmount = itemAmount + procedureAmount;
-              
+
               if (!service.procedureAmount && !service.itemAmount && service.amount) {
                 totalAmount = service.amount * qty;
               }
-              
+
               const revenueKey = moment(discharged.dischargedAt).utcOffset(8).format('YYYY-MM-DD');
               revenueByDate[revenueKey] = (revenueByDate[revenueKey] || 0) + (totalAmount || 0);
 
@@ -1322,8 +1490,10 @@ app.get('/cashierdashboard', async (req, res) => {
                 patientName: discharged.fullName,
                 description: service.description || service.serviceType || 'N/A',
                 itemAmount: itemAmount,
-                procedureAmount: procedureAmount || ((!service.itemAmount && service.amount) ? service.amount * qty : 0),
-                totalAmount: totalAmount || (service.amount * qty) || 0
+                procedureAmount:
+                  procedureAmount ||
+                  (!service.itemAmount && service.amount ? service.amount * qty : 0),
+                totalAmount: totalAmount || service.amount * qty || 0,
               });
             });
           }
@@ -1333,21 +1503,35 @@ app.get('/cashierdashboard', async (req, res) => {
 
     const registeredAgg = await Patient.aggregate([
       { $match: { registrationDate: { $gte: startDate, $lte: endDate } } },
-      { $group: { _id: { $dateToString: { format: '%Y-%m-%d', date: '$registrationDate', timezone: '+08:00' } }, count: { $sum: 1 } } },
-      { $sort: { _id: 1 } }
+      {
+        $group: {
+          _id: {
+            $dateToString: { format: '%Y-%m-%d', date: '$registrationDate', timezone: '+08:00' },
+          },
+          count: { $sum: 1 },
+        },
+      },
+      { $sort: { _id: 1 } },
     ]);
 
     const dischargedAgg = await mongoose.model('DischargedPatient').aggregate([
       { $match: { dischargedAt: { $gte: startDate, $lte: endDate } } },
-      { $group: { _id: { $dateToString: { format: '%Y-%m-%d', date: '$dischargedAt', timezone: '+08:00' } }, count: { $sum: 1 } } },
-      { $sort: { _id: 1 } }
+      {
+        $group: {
+          _id: {
+            $dateToString: { format: '%Y-%m-%d', date: '$dischargedAt', timezone: '+08:00' },
+          },
+          count: { $sum: 1 },
+        },
+      },
+      { $sort: { _id: 1 } },
     ]);
 
     const labels = [];
     const labelIndex = {};
     const current = moment(startDate);
     const end = moment(endDate);
-    
+
     while (current.isSameOrBefore(end, 'day')) {
       const key = current.format('YYYY-MM-DD');
       labels.push(key);
@@ -1358,35 +1542,36 @@ app.get('/cashierdashboard', async (req, res) => {
     const registeredCounts = new Array(labels.length).fill(0);
     const dischargedCounts = new Array(labels.length).fill(0);
 
-    registeredAgg.forEach(row => {
+    registeredAgg.forEach((row) => {
       if (labelIndex[row._id] !== undefined) registeredCounts[labelIndex[row._id]] = row.count;
     });
-    dischargedAgg.forEach(row => {
+    dischargedAgg.forEach((row) => {
       if (labelIndex[row._id] !== undefined) dischargedCounts[labelIndex[row._id]] = row.count;
     });
 
-    const revenueSeries = labels.map(key => revenueByDate[key] || 0);
+    const revenueSeries = labels.map((key) => revenueByDate[key] || 0);
     const chartData = { labels, registeredCounts, dischargedCounts, revenueSeries };
 
     const deptAgg = await mongoose.model('DischargedPatient').aggregate([
       { $match: { dischargedAt: { $gte: startDate, $lte: endDate } } },
-      { $group: { 
+      {
+        $group: {
           _id: {
             $cond: [
-              { $or: [ { $eq: ['$department', null] }, { $eq: ['$department', ''] } ] },
+              { $or: [{ $eq: ['$department', null] }, { $eq: ['$department', ''] }] },
               'Unspecified',
-              '$department'
-            ]
+              '$department',
+            ],
           },
-          count: { $sum: 1 } 
-        } 
+          count: { $sum: 1 },
+        },
       },
-      { $sort: { count: -1 } }
+      { $sort: { count: -1 } },
     ]);
 
     const departmentData = {
-      labels: deptAgg.map(d => d._id || 'Unknown'),
-      counts: deptAgg.map(d => d.count)
+      labels: deptAgg.map((d) => d._id || 'Unknown'),
+      counts: deptAgg.map((d) => d.count),
     };
 
     res.render('cashierdashboard', {
@@ -1395,7 +1580,7 @@ app.get('/cashierdashboard', async (req, res) => {
       chartData,
       departmentData,
       username: req.session.username,
-      emailAddress: req.session.emailAddress
+      emailAddress: req.session.emailAddress,
     });
   } catch (error) {
     console.error('Cashier Dashboard error:', error);
@@ -1439,11 +1624,10 @@ app.get('/', (req, res) => {
 });
 
 // Keep a single root redirect. If you want a different landing page, change the path below.
-  // app.get('/', (req, res) => { res.redirect('/services'); });
-  router.get('/doctors', (req, res) => {
-    res.redirect('/doctor');
-  });
-  
+// app.get('/', (req, res) => { res.redirect('/services'); });
+router.get('/doctors', (req, res) => {
+  res.redirect('/doctor');
+});
 
 // Socket.IO connection
 io.on('connection', (socket) => {
@@ -1454,7 +1638,7 @@ io.on('connection', (socket) => {
 });
 
 // Start server with PORT env override and auto-fallback if port is in use
-const host = process.env.HOST
+const host = process.env.HOST;
 let currentPort = parseInt(process.env.PORT, 10);
 let retries = 0;
 const MAX_RETRIES = 5;
@@ -1485,8 +1669,14 @@ async function generateHRNForOnHold() {
   const prefix = `${yy}-00-00-`;
 
   // Find latest in Patients and OnHold
-  const lastPatient = await Patient.findOne({ patientId: { $regex: `^${prefix}` } }).sort({ patientId: -1 }).exec().catch(()=>null);
-  const lastOnHold = await OnHold.findOne({ tempId: { $regex: `^${prefix}` } }).sort({ tempId: -1 }).exec().catch(()=>null);
+  const lastPatient = await Patient.findOne({ patientId: { $regex: `^${prefix}` } })
+    .sort({ patientId: -1 })
+    .exec()
+    .catch(() => null);
+  const lastOnHold = await OnHold.findOne({ tempId: { $regex: `^${prefix}` } })
+    .sort({ tempId: -1 })
+    .exec()
+    .catch(() => null);
 
   let lastSeq = 0;
   if (lastPatient && lastPatient.patientId) {
@@ -1503,35 +1693,35 @@ async function generateHRNForOnHold() {
   const next = String(lastSeq + 1).padStart(2, '0');
   return `${prefix}${next}`;
 }
-  
-  app.get('/onhold-list', async (req, res) => {
-    try {
-      const onHolds = await OnHold.find();
-      res.render('onholdList', { onHolds });
-    } catch (err) {
-      res.status(500).send('Failed to fetch on-hold patients');
-    }
-  });
 
-  app.get('/patient-from-onhold/:id', async (req, res) => {
-    try {
-      const hold = await OnHold.findById(req.params.id);
-      res.render('patient', { error: null, hold }); // ✅ error is passed
-    } catch (err) {
-      res.status(404).send('OnHold patient not found');
-    }
-  });
-  
-  app.get('/patient', async (req, res) => {
-    const hold = req.query.onHoldId ? await OnHold.findById(req.query.onHoldId) : null;
+app.get('/onhold-list', async (req, res) => {
+  try {
+    const onHolds = await OnHold.find();
+    res.render('onholdList', { onHolds });
+  } catch (err) {
+    res.status(500).send('Failed to fetch on-hold patients');
+  }
+});
+
+app.get('/patient-from-onhold/:id', async (req, res) => {
+  try {
+    const hold = await OnHold.findById(req.params.id);
     res.render('patient', { error: null, hold }); // ✅ error is passed
-  });
-  
-  app.get('/onholdlist', (req, res) => {
-    res.redirect('/onhold-list');
-  });
-  
-  const TransactionType = require('./models/TransactionType');
+  } catch (err) {
+    res.status(404).send('OnHold patient not found');
+  }
+});
+
+app.get('/patient', async (req, res) => {
+  const hold = req.query.onHoldId ? await OnHold.findById(req.query.onHoldId) : null;
+  res.render('patient', { error: null, hold }); // ✅ error is passed
+});
+
+app.get('/onholdlist', (req, res) => {
+  res.redirect('/onhold-list');
+});
+
+const TransactionType = require('./models/TransactionType');
 
 // Show services page
 app.get('/services', async (req, res) => {
@@ -1567,7 +1757,7 @@ app.post('/add-service', async (req, res) => {
 
   // Defensive: If any array is not the same length, return error
   const len = descriptions.length;
-  if ([procedureAmounts, itemAmounts, totalAmounts].some(arr => arr.length !== len)) {
+  if ([procedureAmounts, itemAmounts, totalAmounts].some((arr) => arr.length !== len)) {
     return res.status(400).send('Service field arrays are not the same length.');
   }
 
@@ -1576,88 +1766,87 @@ app.post('/add-service', async (req, res) => {
     procedureAmount: procedureAmounts[i] || null,
     itemUsed: itemUsed[i] || null,
     itemAmount: itemAmounts[i] || null,
-    amount: totalAmounts[i]
+    amount: totalAmounts[i],
   }));
 
-  await TransactionType.findOneAndUpdate(
-    { type },
-    { $push: { services: { $each: services } } }
-  );
+  await TransactionType.findOneAndUpdate({ type }, { $push: { services: { $each: services } } });
 
   res.redirect('/services');
 });
 
 app.get('/services/:transactionType', async (req, res) => {
-    const { transactionType } = req.params;
-    try {
-      // Find the transaction type and fetch its services
-      const transaction = await TransactionType.findOne({ type: transactionType });
-      
-      if (!transaction) {
-        return res.status(404).send('Transaction Type not found');
-      }
-  
-      // Return the services of the found transaction type
-      res.json(transaction.services);
-    } catch (err) {
-      console.error(err);
-      res.status(500).send('Error fetching services');
+  const { transactionType } = req.params;
+  try {
+    // Find the transaction type and fetch its services
+    const transaction = await TransactionType.findOne({ type: transactionType });
+
+    if (!transaction) {
+      return res.status(404).send('Transaction Type not found');
     }
-  });
-  app.delete('/delete-service/:serviceId', async (req, res) => {
-    const { serviceId } = req.params;
-    
-    try {
-      // Find the transaction type containing the service
-      const transaction = await TransactionType.findOne({ "services._id": serviceId });
-  
-      if (!transaction) {
-        return res.status(404).send('Service not found');
-      }
-  
-      // Remove the service from the services array
-      const serviceIndex = transaction.services.findIndex(service => service._id.toString() === serviceId);
-      
-      if (serviceIndex > -1) {
-        transaction.services.splice(serviceIndex, 1); // Remove service by index
-        await transaction.save(); // Save the updated transaction
-        res.send('Service deleted');
-      } else {
-        res.status(404).send('Service not found in this transaction type');
-      }
-    } catch (err) {
-      console.error(err);
-      res.status(500).send('Error deleting service');
+
+    // Return the services of the found transaction type
+    res.json(transaction.services);
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('Error fetching services');
+  }
+});
+app.delete('/delete-service/:serviceId', async (req, res) => {
+  const { serviceId } = req.params;
+
+  try {
+    // Find the transaction type containing the service
+    const transaction = await TransactionType.findOne({ 'services._id': serviceId });
+
+    if (!transaction) {
+      return res.status(404).send('Service not found');
     }
-  });
-  
-  // Update a service
+
+    // Remove the service from the services array
+    const serviceIndex = transaction.services.findIndex(
+      (service) => service._id.toString() === serviceId,
+    );
+
+    if (serviceIndex > -1) {
+      transaction.services.splice(serviceIndex, 1); // Remove service by index
+      await transaction.save(); // Save the updated transaction
+      res.send('Service deleted');
+    } else {
+      res.status(404).send('Service not found in this transaction type');
+    }
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('Error deleting service');
+  }
+});
+
+// Update a service
 app.put('/update-service/:serviceId', async (req, res) => {
-    const { serviceId } = req.params;
-    const { description, procedureAmount, itemUsed, itemAmount, amount } = req.body;
-  
-    try {
-      const transaction = await TransactionType.findOne({ "services._id": serviceId });
-  
-      if (!transaction) {
-        return res.status(404).send('Service not found');
-      }
-  
-      const service = transaction.services.id(serviceId);
-      service.description = description;
-      service.procedureAmount = procedureAmount || null;
-      service.itemUsed = itemUsed || null;
-      service.itemAmount = itemAmount || null;
-      service.amount = amount;
-      
-      await transaction.save();
-      res.send('Service updated');
-    } catch (err) {
-      res.status(500).send('Error updating service');
+  const { serviceId } = req.params;
+  const { description, procedureAmount, itemUsed, itemAmount, amount } = req.body;
+
+  try {
+    const transaction = await TransactionType.findOne({ 'services._id': serviceId });
+
+    if (!transaction) {
+      return res.status(404).send('Service not found');
     }
-  });
-  
-  // Render doctor registration form
+
+    const service = transaction.services.id(serviceId);
+    service.description = description;
+    service.procedureAmount = procedureAmount || null;
+    service.itemUsed = itemUsed || null;
+    service.itemAmount = itemAmount || null;
+    service.amount = amount;
+
+    await transaction.save();
+    res.send('Service updated');
+  } catch (err) {
+    res.status(500).send('Error updating service');
+  }
+});
+
+// Render doctor registration form
 router.get('/doctor', async (req, res) => {
   try {
     const specialties = await Specialty.find();
@@ -1666,7 +1855,7 @@ router.get('/doctor', async (req, res) => {
 
     // Compute effective status similar to nurses
     const today = new Date();
-    const doctorsWithStatus = doctors.map(d => {
+    const doctorsWithStatus = doctors.map((d) => {
       const obj = d.toObject();
       const isExpired = obj.validUntil && new Date(obj.validUntil) < today;
       const baseStatus = obj.status || 'active';
@@ -1690,23 +1879,38 @@ function generateDoctorId() {
 router.post('/register-doctor', async (req, res) => {
   try {
     const {
-      firstName, middleName, lastName, birthday, gender, contact, address, email,
-      specialties, services, licenseNumber, validUntil
+      firstName,
+      middleName,
+      lastName,
+      birthday,
+      gender,
+      contact,
+      address,
+      email,
+      specialties,
+      services,
+      licenseNumber,
+      validUntil,
     } = req.body;
 
     // Basic validation
     const contactOk = /^\d{11}$/.test((contact || '').trim());
     const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test((email || '').trim());
-    if (!contactOk) return res.status(400).send('Invalid contact number. It must be exactly 11 digits.');
+    if (!contactOk)
+      return res.status(400).send('Invalid contact number. It must be exactly 11 digits.');
     if (!emailOk) return res.status(400).send('Invalid email format.');
 
     // Normalize arrays
     const safeSpecialties = Array.isArray(specialties)
       ? specialties.filter(Boolean)
-      : (specialties ? [specialties] : []);
+      : specialties
+        ? [specialties]
+        : [];
     const safeServices = Array.isArray(services)
       ? services.filter(Boolean)
-      : (services ? [services] : []);
+      : services
+        ? [services]
+        : [];
 
     const doctor = new Doctor({
       doctorId: generateDoctorId(),
@@ -1722,7 +1926,7 @@ router.post('/register-doctor', async (req, res) => {
       validUntil,
       specialties: safeSpecialties,
       services: safeServices,
-      status: 'active'
+      status: 'active',
     });
 
     await doctor.save();
@@ -1753,7 +1957,6 @@ router.post('/toggle-doctor-status', async (req, res) => {
     res.status(500).json({ error: 'Failed to update status' });
   }
 });
-
 
 // Optional: Add service
 router.post('/add-doctor-service', async (req, res) => {

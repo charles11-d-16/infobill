@@ -14,32 +14,34 @@ router.get('/admissionrecords', async (req, res) => {
 router.post('/processPatient', async (req, res) => {
   try {
     const { patientId } = req.body;
-    
+
     // Get patient details
     const patient = await Patient.findOne({ patientId });
     if (!patient) {
       return res.status(404).json({ success: false, error: 'Patient not found' });
     }
-    
+
     // Construct full name with capitalized first letters
-    const lastName = patient.lastName.charAt(0).toUpperCase() + patient.lastName.slice(1).toLowerCase();
-    const firstName = patient.firstName.charAt(0).toUpperCase() + patient.firstName.slice(1).toLowerCase();
+    const lastName =
+      patient.lastName.charAt(0).toUpperCase() + patient.lastName.slice(1).toLowerCase();
+    const firstName =
+      patient.firstName.charAt(0).toUpperCase() + patient.firstName.slice(1).toLowerCase();
     const fullName = `${lastName}, ${firstName}`;
-    
+
     await ProcessedPatient.updateOne(
       { patientId },
       { $set: { processed: true, processedAt: new Date() } },
-      { upsert: true }
+      { upsert: true },
     );
-    
+
     await Notification.create({
       patientId,
       fullName: fullName,
       message: `Patient HRN ${patientId} ${fullName} for admitting`,
       department: 'Admission',
-      read: false
+      read: false,
     });
-    
+
     res.json({ success: true });
   } catch (err) {
     console.error('Error processing patient:', err);
@@ -57,21 +59,29 @@ router.post('/cancelProcessPatient', async (req, res) => {
     const Admission = require('../models/Admission');
     const admitted = await Admission.findOne({ patientId });
     if (admitted) {
-      return res.status(409).json({ success: false, error: 'Patient already admitted. Cannot cancel.' });
+      return res
+        .status(409)
+        .json({ success: false, error: 'Patient already admitted. Cannot cancel.' });
     }
 
     const ProcessedPatient = require('../models/ProcessedPatient');
     await ProcessedPatient.updateOne(
       { patientId },
       { $set: { processed: false }, $unset: { processedAt: '' } },
-      { upsert: true }
+      { upsert: true },
     );
 
     // Send cancellation notification to Admission
     try {
       const p = await Patient.findOne({ patientId });
-      const lastName = p && p.lastName ? (p.lastName.charAt(0).toUpperCase() + p.lastName.slice(1).toLowerCase()) : '';
-      const firstName = p && p.firstName ? (p.firstName.charAt(0).toUpperCase() + p.firstName.slice(1).toLowerCase()) : '';
+      const lastName =
+        p && p.lastName
+          ? p.lastName.charAt(0).toUpperCase() + p.lastName.slice(1).toLowerCase()
+          : '';
+      const firstName =
+        p && p.firstName
+          ? p.firstName.charAt(0).toUpperCase() + p.firstName.slice(1).toLowerCase()
+          : '';
       const displayName = `${lastName}, ${firstName}`.trim();
 
       await Notification.create({
@@ -79,10 +89,13 @@ router.post('/cancelProcessPatient', async (req, res) => {
         fullName: displayName,
         message: `Patient HRN ${patientId} ${displayName} Admission Cancelled`,
         department: 'Admission',
-        read: false
+        read: false,
       });
     } catch (notifyErr) {
-      console.warn('Failed to create cancel notification:', notifyErr && notifyErr.message ? notifyErr.message : notifyErr);
+      console.warn(
+        'Failed to create cancel notification:',
+        notifyErr && notifyErr.message ? notifyErr.message : notifyErr,
+      );
     }
 
     return res.json({ success: true });

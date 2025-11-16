@@ -6,15 +6,15 @@ const NurseSchedule = require('../models/NurseSchedule'); // You need to create 
 
 router.get('/nursescheduling', async (req, res) => {
   const allNurses = await Nurse.find();
-  
+
   // Filter only active nurses with valid licenses
   const today = new Date();
-  const nurses = allNurses.filter(nurse => {
+  const nurses = allNurses.filter((nurse) => {
     const isLicenseValid = !nurse.validUntil || new Date(nurse.validUntil) >= today;
     const isActive = nurse.status === 'active';
     return isLicenseValid && isActive;
   });
-  
+
   res.render('nursescheduling', { nurses });
 });
 
@@ -43,7 +43,7 @@ router.post('/save-nurse-schedule/:nurseId', async (req, res) => {
           startTime,
           endTime,
           departments: departmentsArray,
-          duties: dutiesArray
+          duties: dutiesArray,
         });
         await schedule.save();
       }
@@ -70,8 +70,15 @@ router.get('/api/nurse-schedule/:nurseId', async (req, res) => {
 router.post('/api/nurse-schedule/:nurseId', async (req, res) => {
   try {
     const { date, startTime, endTime, department } = req.body;
-    if (!date || !startTime || !endTime || !department) return res.status(400).json({ error: 'Missing fields' });
-    const sched = new NurseSchedule({ nurseId: req.params.nurseId, date, startTime, endTime, department });
+    if (!date || !startTime || !endTime || !department)
+      return res.status(400).json({ error: 'Missing fields' });
+    const sched = new NurseSchedule({
+      nurseId: req.params.nurseId,
+      date,
+      startTime,
+      endTime,
+      department,
+    });
     await sched.save();
     res.json({ success: true, _id: sched._id });
   } catch (e) {
@@ -82,7 +89,8 @@ router.post('/api/nurse-schedule/:nurseId', async (req, res) => {
 router.put('/api/nurse-schedule/:id', async (req, res) => {
   try {
     const { date, startTime, endTime, department } = req.body;
-    if (!date || !startTime || !endTime || !department) return res.status(400).json({ error: 'Missing fields' });
+    if (!date || !startTime || !endTime || !department)
+      return res.status(400).json({ error: 'Missing fields' });
     await NurseSchedule.findByIdAndUpdate(req.params.id, { date, startTime, endTime, department });
     res.json({ success: true });
   } catch (e) {

@@ -14,11 +14,9 @@ const departmentTransactionSchema = new mongoose.Schema(
           ref: 'TransactionType',
         },
       },
-      type: {
-        type: String
-      }
-    }
-  ]
-}, { versionKey: false });
+    ],
+  },
+  { versionKey: false },
+);
 
 module.exports = mongoose.model('DepartmentTransaction', departmentTransactionSchema);

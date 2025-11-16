@@ -17,7 +17,7 @@ const DeletedDiagnose = require('../models/DeletedDiagnose');
 router.get('/opd', async (req, res) => {
   try {
     const opdPatients = await Admission.find({
-      category: { $regex: /^Out Patient Department$/i }
+      category: { $regex: /^Out Patient Department$/i },
     }).sort({ admittedAt: -1 });
     res.render('opd', { patients: opdPatients });
   } catch (err) {
@@ -43,71 +43,69 @@ router.get('/opd/view/:id', async (req, res) => {
     // Get medical records
     const medicalRecords = await Medical.find({ patientId: id });
 
-  const now = new Date();
-  const todayStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`; // YYYY-MM-DD (local)
+    const now = new Date();
+    const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`; // YYYY-MM-DD (local)
 
-const doctorSchedules = await DoctorSchedule.find({ date: todayStr, department: 'OPD' });
-const nurseSchedules = await NurseSchedule.find({ date: todayStr, department: 'OPD' });
+    const doctorSchedules = await DoctorSchedule.find({ date: todayStr, department: 'OPD' });
+    const nurseSchedules = await NurseSchedule.find({ date: todayStr, department: 'OPD' });
 
-// Extract IDs
-const doctorIds = doctorSchedules.map(d => d.doctorId);
-const nurseIds = nurseSchedules.map(n => n.nurseId);
+    // Extract IDs
+    const doctorIds = doctorSchedules.map((d) => d.doctorId);
+    const nurseIds = nurseSchedules.map((n) => n.nurseId);
 
-// Fetch full details
-const allDoctors = await Doctor.find({ doctorId: { $in: doctorIds } });
-const today = new Date();
-const availableDoctors = allDoctors.filter(doc => {
-  const isLicenseValid = !doc.validUntil || new Date(doc.validUntil) >= today;
-  const isActive = (doc.status || 'active') === 'active';
-  return isLicenseValid && isActive;
-});
+    // Fetch full details
+    const allDoctors = await Doctor.find({ doctorId: { $in: doctorIds } });
+    const today = new Date();
+    const availableDoctors = allDoctors.filter((doc) => {
+      const isLicenseValid = !doc.validUntil || new Date(doc.validUntil) >= today;
+      const isActive = (doc.status || 'active') === 'active';
+      return isLicenseValid && isActive;
+    });
 
-// Fetch nurses and filter by status and license validity
-const allNurses = await Nurse.find({ nurseId: { $in: nurseIds } });
-const availableNurses = allNurses.filter(nurse => {
-  const isLicenseValid = !nurse.validUntil || new Date(nurse.validUntil) >= today;
-  const isActive = nurse.status === 'active';
-  return isLicenseValid && isActive;
-});
+    // Fetch nurses and filter by status and license validity
+    const allNurses = await Nurse.find({ nurseId: { $in: nurseIds } });
+    const availableNurses = allNurses.filter((nurse) => {
+      const isLicenseValid = !nurse.validUntil || new Date(nurse.validUntil) >= today;
+      const isActive = nurse.status === 'active';
+      return isLicenseValid && isActive;
+    });
 
     // Fetch charge slip transactions for this patient
     const transactions = await Transaction.find({ patientId: patient._id }).sort({ createdAt: -1 });
 
-      // Determine if there is a diagnose after admission
-      let hasRecentDiagnose = false;
-      if (admissionInfo && medicalRecords.length > 0) {
-        for (const record of medicalRecords) {
-          if (Array.isArray(record.diagnose)) {
-            if (record.diagnose.some(d => new Date(d.date) >= new Date(admissionInfo.admittedAt))) {
-              hasRecentDiagnose = true;
-              break;
-            }
+    // Determine if there is a diagnose after admission
+    let hasRecentDiagnose = false;
+    if (admissionInfo && medicalRecords.length > 0) {
+      for (const record of medicalRecords) {
+        if (Array.isArray(record.diagnose)) {
+          if (record.diagnose.some((d) => new Date(d.date) >= new Date(admissionInfo.admittedAt))) {
+            hasRecentDiagnose = true;
+            break;
           }
         }
       }
+    }
 
-      // Get category and transaction types for charge slip modal
-      const category = await DepartmentCategory.findOne({ name: 'Out Patient Department' });
-      const transactionTypes = await TransactionType.find({});
+    // Get category and transaction types for charge slip modal
+    const category = await DepartmentCategory.findOne({ name: 'Out Patient Department' });
+    const transactionTypes = await TransactionType.find({});
 
-      res.render('opd_view_details', {
-        patient,
-        medicalRecords,
-        availableDoctors,
-        availableNurses,
-        admissionInfo,
-        transactions,
-        hasRecentDiagnose,
-        category,
-        transactionTypes
-      });
+    res.render('opd_view_details', {
+      patient,
+      medicalRecords,
+      availableDoctors,
+      availableNurses,
+      admissionInfo,
+      transactions,
+      hasRecentDiagnose,
+      category,
+      transactionTypes,
+    });
   } catch (error) {
     console.error(error);
     res.status(500).send('Error loading patient data');
   }
 });
-
-
 
 router.post('/opd/view/:id/diagnose', async (req, res) => {
   const { id: patientIdOrTempId } = req.params;
@@ -159,13 +157,13 @@ router.post('/opd/view/:id/diagnose', async (req, res) => {
           complaint,
           doctor_order,
           nurse_assist: nurseFullName,
-          doctor: doctorFullName
-        }
-      }
+          doctor: doctorFullName,
+        },
+      },
     });
 
     console.log('✅ Diagnose saved successfully for:', patientIdOrTempId);
-    
+
     // Return JSON for AJAX or redirect for form submit
     if (req.xhr || req.headers.accept?.includes('application/json')) {
       return res.json({ success: true, message: 'Diagnose added successfully' });
@@ -189,7 +187,7 @@ router.post('/opd/view/:id/request-service', async (req, res) => {
       referredDoctor,
       services,
       patientId,
-      fullName
+      fullName,
     } = req.body;
 
     const selectedCategory = category === 'Laboratory' ? labSubcategory : category;
@@ -202,17 +200,16 @@ router.post('/opd/view/:id/request-service', async (req, res) => {
       category: selectedCategory,
       referralLocation,
       referredDoctor,
-      services: Array.isArray(services) ? services : [services]
+      services: Array.isArray(services) ? services : [services],
     });
 
     await newAdmission.save();
     res.redirect(`/opd/view/${req.params.id}`);
   } catch (err) {
     console.error(err);
-    res.status(500).send("Error processing service request.");
+    res.status(500).send('Error processing service request.');
   }
 });
-
 
 // Charge slip form
 router.get('/opd/charge-slip/:admissionId/:patientId', async (req, res) => {
@@ -244,16 +241,13 @@ router.get('/opd/charge-slip/:admissionId/:patientId', async (req, res) => {
       patientId: patient._id,
       patient,
       category,
-      transactionTypes
+      transactionTypes,
     });
   } catch (err) {
     console.error(err);
     res.status(500).send('Error loading charge slip');
   }
 });
-
-
-
 
 router.post('/opd/charge-slip', async (req, res) => {
   const { admissionId, patientId, categoryId } = req.body;
@@ -262,21 +256,29 @@ router.post('/opd/charge-slip', async (req, res) => {
   // Prefer robust JSON payload if present
   let txArr = null;
   if (transactionsJson && typeof transactionsJson === 'string') {
-    try { txArr = JSON.parse(transactionsJson); } catch (_) { txArr = null; }
+    try {
+      txArr = JSON.parse(transactionsJson);
+    } catch (_) {
+      txArr = null;
+    }
   }
   // Fallbacks
   if (!txArr) {
     txArr = transactions;
     if (typeof txArr === 'string') {
-      try { txArr = JSON.parse(txArr); } catch (_) { txArr = null; }
+      try {
+        txArr = JSON.parse(txArr);
+      } catch (_) {
+        txArr = null;
+      }
     }
   }
   // If still not array, normalize possible object with numeric keys or single object
   if (txArr && !Array.isArray(txArr)) {
     if (typeof txArr === 'object') {
       const keys = Object.keys(txArr);
-      if (keys.every(k => /^\d+$/.test(k))) {
-        txArr = keys.sort((a,b)=>a-b).map(k => txArr[k]);
+      if (keys.every((k) => /^\d+$/.test(k))) {
+        txArr = keys.sort((a, b) => a - b).map((k) => txArr[k]);
       } else {
         txArr = [txArr];
       }
@@ -286,7 +288,7 @@ router.post('/opd/charge-slip', async (req, res) => {
 
   // Build services array from the submitted items
   const services = [];
-  txArr.forEach(tx => {
+  txArr.forEach((tx) => {
     if (tx && typeof tx === 'object') {
       const type = tx.type;
       const description = tx.description;
@@ -295,11 +297,14 @@ router.post('/opd/charge-slip', async (req, res) => {
         services.push({
           type,
           description,
-          procedureAmount: tx.procedureAmount !== '' && tx.procedureAmount != null ? Number(tx.procedureAmount) : null,
+          procedureAmount:
+            tx.procedureAmount !== '' && tx.procedureAmount != null
+              ? Number(tx.procedureAmount)
+              : null,
           itemUsed: tx.itemUsed || '',
           itemAmount: tx.itemAmount !== '' && tx.itemAmount != null ? Number(tx.itemAmount) : null,
           qty: tx.qty && !isNaN(tx.qty) ? Number(tx.qty) : 1,
-          amount: Number(amount)
+          amount: Number(amount),
         });
       }
     }
@@ -310,26 +315,31 @@ router.post('/opd/charge-slip', async (req, res) => {
     admissionId,
     patientId,
     categoryId: categoryId ? categoryId : undefined,
-    services
+    services,
   };
 
   // Debug: verify payload shape
-  try { console.log('[OPD ChargeSlip] Creating Transaction:', JSON.stringify(docToCreate)); } catch(_){ }
+  try {
+    console.log('[OPD ChargeSlip] Creating Transaction:', JSON.stringify(docToCreate));
+  } catch (_) {}
 
   // Server-side duplicate guard: if an identical payload was created very recently, skip creating again
   try {
-    const normalize = (arr) => JSON.stringify((arr || []).map(s => ({
-      t: s.type || '',
-      d: s.description || '',
-      pa: (s.procedureAmount === 0 || s.procedureAmount) ? Number(s.procedureAmount) : null,
-      iu: s.itemUsed || '',
-      ia: (s.itemAmount === 0 || s.itemAmount) ? Number(s.itemAmount) : null,
-      q: Number(s.qty || 1),
-      a: Number(s.amount || 0)
-    })));
+    const normalize = (arr) =>
+      JSON.stringify(
+        (arr || []).map((s) => ({
+          t: s.type || '',
+          d: s.description || '',
+          pa: s.procedureAmount === 0 || s.procedureAmount ? Number(s.procedureAmount) : null,
+          iu: s.itemUsed || '',
+          ia: s.itemAmount === 0 || s.itemAmount ? Number(s.itemAmount) : null,
+          q: Number(s.qty || 1),
+          a: Number(s.amount || 0),
+        })),
+      );
 
     const recent = await Transaction.findOne({ admissionId, patientId }).sort({ createdAt: -1 });
-    if (recent && (Date.now() - new Date(recent.createdAt).getTime()) < 8000) {
+    if (recent && Date.now() - new Date(recent.createdAt).getTime() < 8000) {
       if (normalize(recent.services) === normalize(services)) {
         console.log('[OPD ChargeSlip] Duplicate detected within 8s, skipping create');
         return res.redirect('/opd');
@@ -345,27 +355,31 @@ router.post('/opd/charge-slip', async (req, res) => {
   const io = req.app.get('io');
   const Patient = require('../models/patient');
   const patient = await Patient.findById(patientId);
-  
+
   if (io && patient) {
     const totalAmount = services.reduce((sum, s) => sum + (s.amount || 0), 0);
     io.emit('newBilling', {
       patientId,
       patientName: `${patient.firstName} ${patient.lastName}`,
       totalAmount,
-      timestamp: new Date()
+      timestamp: new Date(),
     });
 
     // Save notification to database with requested phrasing
     const Notification = require('../models/Notification');
-    const lastName = (patient.lastName || '').charAt(0).toUpperCase() + (patient.lastName || '').slice(1).toLowerCase();
-    const firstName = (patient.firstName || '').charAt(0).toUpperCase() + (patient.firstName || '').slice(1).toLowerCase();
+    const lastName =
+      (patient.lastName || '').charAt(0).toUpperCase() +
+      (patient.lastName || '').slice(1).toLowerCase();
+    const firstName =
+      (patient.firstName || '').charAt(0).toUpperCase() +
+      (patient.firstName || '').slice(1).toLowerCase();
     const displayName = `${lastName}, ${firstName}`.trim();
     await Notification.create({
       patientId: patient.patientId,
       fullName: displayName,
       message: `Patient HRN ${patient.patientId} ${displayName} Charge Slip Submitted for Billing`,
       department: 'Billing',
-      read: false
+      read: false,
     });
   }
 
@@ -394,7 +408,7 @@ router.post('/opd/void-service', async (req, res) => {
     // Remove the service line
     await Transaction.updateOne(
       { _id: transactionId },
-      { $pull: { services: { _id: serviceId } } }
+      { $pull: { services: { _id: serviceId } } },
     );
 
     // If transaction is now empty, delete it
@@ -435,7 +449,7 @@ router.post('/opd/view/:id/void-services', async (req, res) => {
 
     // Group services by transaction ID
     const servicesByTransaction = {};
-    services.forEach(s => {
+    services.forEach((s) => {
       if (!servicesByTransaction[s.transactionId]) {
         servicesByTransaction[s.transactionId] = [];
       }
@@ -449,15 +463,15 @@ router.post('/opd/view/:id/void-services', async (req, res) => {
 
       // Check if transaction has been confirmed by billing - block void if so
       if (transaction.status === 'Payment Verified') {
-        return res.status(403).json({ 
-          success: false, 
-          message: 'Cannot void: Transaction has been paid' 
+        return res.status(403).json({
+          success: false,
+          message: 'Cannot void: Transaction has been paid',
         });
       }
       if (transaction.status === 'Billing Confirmed') {
-        return res.status(403).json({ 
-          success: false, 
-          message: 'Cannot void: Transaction has been confirmed by billing' 
+        return res.status(403).json({
+          success: false,
+          message: 'Cannot void: Transaction has been confirmed by billing',
         });
       }
 
@@ -481,10 +495,10 @@ router.post('/opd/view/:id/void-services', async (req, res) => {
             itemUsed: service.itemUsed,
             itemAmount: service.itemAmount,
             qty: service.qty,
-            amount: service.amount
+            amount: service.amount,
           },
           voidReason: reason,
-          voidedBy: 'OPD Staff' // You can enhance this with actual user tracking
+          voidedBy: 'OPD Staff', // You can enhance this with actual user tracking
         });
 
         // Remove service from transaction
@@ -503,10 +517,11 @@ router.post('/opd/view/:id/void-services', async (req, res) => {
   } catch (err) {
     console.error('Error voiding services:', err);
     console.error('Stack trace:', err.stack);
-    return res.status(500).json({ success: false, message: 'Failed to void services', error: err.message });
+    return res
+      .status(500)
+      .json({ success: false, message: 'Failed to void services', error: err.message });
   }
 });
-
 
 // Voided transactions list
 router.get('/opd/voided', async (req, res) => {
@@ -514,8 +529,10 @@ router.get('/opd/voided', async (req, res) => {
   const Patient = require('../models/patient');
 
   try {
-    const voidedTransactions = await VoidedTransaction.find({ department: 'OPD' }).sort({ voidedAt: -1 });
-    
+    const voidedTransactions = await VoidedTransaction.find({ department: 'OPD' }).sort({
+      voidedAt: -1,
+    });
+
     // Group by patient
     const patientMap = {};
     for (const vt of voidedTransactions) {
@@ -528,7 +545,7 @@ router.get('/opd/voided', async (req, res) => {
             birthday: patient.birthdate || patient.birthday,
             voidedBy: vt.voidedBy,
             voidedAt: vt.voidedAt,
-            count: 1
+            count: 1,
           };
         }
       } else {
@@ -560,9 +577,9 @@ router.get('/opd/voided/:patientId', async (req, res) => {
       return res.status(404).send('Patient not found');
     }
 
-    const voidedTransactions = await VoidedTransaction.find({ 
-      patientId, 
-      department: 'OPD' 
+    const voidedTransactions = await VoidedTransaction.find({
+      patientId,
+      department: 'OPD',
     }).sort({ voidedAt: -1 });
 
     res.render('opdvoiddetails', { patient, voidedTransactions });
@@ -572,14 +589,15 @@ router.get('/opd/voided/:patientId', async (req, res) => {
   }
 });
 
-
 // Update diagnose - allowed even if transactions exist
 router.post('/opd/view/:id/diagnose/update', async (req, res) => {
   const { id: patientIdOrTempId } = req.params;
   const { medicalId, diagnoseIndex, complaint, doctor_order, nurse_assist, doctor } = req.body;
 
   try {
-    console.log(`📝 Updating diagnose for patient: ${patientIdOrTempId}, diagnose index: ${diagnoseIndex}`);
+    console.log(
+      `📝 Updating diagnose for patient: ${patientIdOrTempId}, diagnose index: ${diagnoseIndex}`,
+    );
 
     // Find patient
     let patient;
@@ -611,14 +629,16 @@ router.post('/opd/view/:id/diagnose/update', async (req, res) => {
     if (!selectedNurse) {
       return res.status(404).json({ success: false, message: 'Nurse not found' });
     }
-    const nurseFullName = `${selectedNurse.firstName} ${selectedNurse.middleInitial || ''} ${selectedNurse.lastName}`.trim();
+    const nurseFullName =
+      `${selectedNurse.firstName} ${selectedNurse.middleInitial || ''} ${selectedNurse.lastName}`.trim();
 
     // Look up doctor (store as full name string, not ObjectId)
     const selectedDoctor = await Doctor.findOne({ doctorId: doctor });
     if (!selectedDoctor) {
       return res.status(404).json({ success: false, message: 'Doctor not found' });
     }
-    const doctorFullName = `${selectedDoctor.firstName} ${selectedDoctor.middleName || ''} ${selectedDoctor.lastName}`.trim();
+    const doctorFullName =
+      `${selectedDoctor.firstName} ${selectedDoctor.middleName || ''} ${selectedDoctor.lastName}`.trim();
 
     // Update the diagnose at the specific index (preserve date)
     medical.diagnose[diagnoseIndex] = {
@@ -626,7 +646,7 @@ router.post('/opd/view/:id/diagnose/update', async (req, res) => {
       complaint,
       doctor_order,
       nurse_assist: nurseFullName,
-      doctor: doctorFullName
+      doctor: doctorFullName,
     };
 
     await medical.save();
@@ -635,10 +655,11 @@ router.post('/opd/view/:id/diagnose/update', async (req, res) => {
     res.json({ success: true, message: 'Diagnose updated successfully' });
   } catch (error) {
     console.error('❌ Diagnose Update Error:', error);
-    res.status(500).json({ success: false, message: 'Internal server error', error: error.message });
+    res
+      .status(500)
+      .json({ success: false, message: 'Internal server error', error: error.message });
   }
 });
-
 
 // Delete diagnose - only if NO transactions exist
 router.post('/opd/view/:id/diagnose/delete', async (req, res) => {
@@ -646,7 +667,9 @@ router.post('/opd/view/:id/diagnose/delete', async (req, res) => {
   const { medicalId, diagnoseIndex, reason, deletedBy } = req.body;
 
   try {
-    console.log(`🗑️ Deleting diagnose for patient: ${patientIdOrTempId}, diagnose index: ${diagnoseIndex}`);
+    console.log(
+      `🗑️ Deleting diagnose for patient: ${patientIdOrTempId}, diagnose index: ${diagnoseIndex}`,
+    );
 
     // Find patient
     let patient;
@@ -665,9 +688,10 @@ router.post('/opd/view/:id/diagnose/delete', async (req, res) => {
     const transactionCount = await Transaction.countDocuments({ patientId: patient._id });
     if (transactionCount > 0) {
       console.log('⚠️ Cannot delete - patient has transactions');
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Cannot delete diagnose. Patient has charge transactions. You can only edit the diagnose.' 
+      return res.status(400).json({
+        success: false,
+        message:
+          'Cannot delete diagnose. Patient has charge transactions. You can only edit the diagnose.',
       });
     }
 
@@ -695,10 +719,10 @@ router.post('/opd/view/:id/diagnose/delete', async (req, res) => {
         complaint: diagnoseToDelete.complaint,
         doctor_order: diagnoseToDelete.doctor_order,
         nurse_assist: diagnoseToDelete.nurse_assist,
-        doctor: diagnoseToDelete.doctor
+        doctor: diagnoseToDelete.doctor,
       },
       deleteReason: reason || 'Not specified',
-      deletedBy: deletedBy || 'OPD Staff'
+      deletedBy: deletedBy || 'OPD Staff',
     });
 
     // Remove diagnose from medical record
@@ -709,7 +733,9 @@ router.post('/opd/view/:id/diagnose/delete', async (req, res) => {
     res.json({ success: true, message: 'Diagnose deleted successfully' });
   } catch (error) {
     console.error('❌ Diagnose Delete Error:', error);
-    res.status(500).json({ success: false, message: 'Internal server error', error: error.message });
+    res
+      .status(500)
+      .json({ success: false, message: 'Internal server error', error: error.message });
   }
 });
 
@@ -723,16 +749,21 @@ router.post('/opd/view/:id/mark-cleared', async (req, res) => {
     // Verify all transactions for this admission are Payment Verified
     const pendingCount = await Transaction.countDocuments({
       admissionId: admission.admittingId,
-      status: { $ne: 'Payment Verified' }
+      status: { $ne: 'Payment Verified' },
     });
 
     if (pendingCount > 0) {
-      return res.status(400).send('Cannot clear: there are unverified transactions for this admission');
+      return res
+        .status(400)
+        .send('Cannot clear: there are unverified transactions for this admission');
     }
 
-    await Admission.updateOne({ _id: admission._id }, {
-      $set: { isCleared: true, clearedAt: new Date(), clearedBy: 'OPD' }
-    });
+    await Admission.updateOne(
+      { _id: admission._id },
+      {
+        $set: { isCleared: true, clearedAt: new Date(), clearedBy: 'OPD' },
+      },
+    );
 
     res.redirect(`/opd/view/${encodeURIComponent(hrn)}`);
   } catch (err) {
@@ -756,6 +787,5 @@ router.get('/opd/deleted-diagnoses', async (req, res) => {
     res.status(500).send('Server Error');
   }
 });
-
 
 module.exports = router;

@@ -9,17 +9,17 @@ const ProcessedPatient = require('../models/ProcessedPatient');
 router.get('/medical', async (req, res) => {
   const patientId = req.query.patientId;
   let isProcessed = false;
-  
+
   // Check if patient is processed
   if (patientId) {
     const processed = await ProcessedPatient.findOne({ patientId, processed: true });
     isProcessed = !!processed;
   }
-  
+
   res.render('medical', {
     success: req.query.success,
     error: req.query.error,
-    isProcessed
+    isProcessed,
   });
 });
 
@@ -29,22 +29,19 @@ router.get('/api/patients/search', async (req, res) => {
     const searchTerm = req.query.term;
 
     const patientResults = await Patient.find({
-      $or: [
-        { patientId: searchTerm },
-        { lastName: new RegExp(searchTerm, 'i') }
-      ]
+      $or: [{ patientId: searchTerm }, { lastName: new RegExp(searchTerm, 'i') }],
     });
 
-    const combinedResults = patientResults.map(p => ({
+    const combinedResults = patientResults.map((p) => ({
       patientId: p.patientId,
       name: `${p.firstName} ${p.lastName}`,
-      tempId: null
+      tempId: null,
     }));
 
     res.json(combinedResults);
   } catch (err) {
-    console.error("Search error:", err);
-    res.status(500).send("Search failed");
+    console.error('Search error:', err);
+    res.status(500).send('Search failed');
   }
 });
 
@@ -65,7 +62,10 @@ router.post('/medical', async (req, res) => {
 
     // Block creating medical record if patient is archived
     if (foundPatient.isArchived) {
-      return res.redirect('/medical?error=' + encodeURIComponent('Cannot create medical record: patient is archived.'));
+      return res.redirect(
+        '/medical?error=' +
+          encodeURIComponent('Cannot create medical record: patient is archived.'),
+      );
     }
 
     // Prevent duplicate medical record for same patient
@@ -111,13 +111,13 @@ router.post('/medical', async (req, res) => {
       smoking: req.body.smoking,
       alcoholUse: req.body.alcohol,
       occupation: req.body.occupation,
-      exercise: req.body.exercise
+      exercise: req.body.exercise,
     });
 
     await newMedical.save();
     return res.redirect('/medical?success=Medical record saved successfully.');
   } catch (err) {
-    console.error("POST /medical error:", err);
+    console.error('POST /medical error:', err);
     return res.redirect('/medical?error=Error saving medical record.');
   }
 });
@@ -131,11 +131,13 @@ router.get('/api/medical/:id', async (req, res) => {
 // Update medical record
 router.post('/medical/update', async (req, res) => {
   const { patientId, ...fields } = req.body;
-  
+
   // Check if patient is archived before allowing update
   const patient = await Patient.findOne({ patientId });
   if (patient && patient.isArchived) {
-    return res.status(403).json({ success: false, error: 'Cannot update medical record: patient is archived.' });
+    return res
+      .status(403)
+      .json({ success: false, error: 'Cannot update medical record: patient is archived.' });
   }
 
   let med = await Medical.findOne({ patientId });
@@ -152,18 +154,18 @@ router.post('/medical/update', async (req, res) => {
 // Check if patient is already admitted
 router.get('/api/admission-status/:patientId', async (req, res) => {
   try {
-    const admission = await Admission.findOne({ 
-      patientId: req.params.patientId 
+    const admission = await Admission.findOne({
+      patientId: req.params.patientId,
     }).sort({ dateAdmitted: -1 }); // Get most recent admission
-    
+
     if (admission) {
       res.json({
         isAdmitted: true,
         admissionInfo: {
           admittingId: admission.admittingId,
           category: admission.category,
-          dateAdmitted: admission.dateAdmitted
-        }
+          dateAdmitted: admission.dateAdmitted,
+        },
       });
     } else {
       res.json({ isAdmitted: false });
@@ -175,4 +177,3 @@ router.get('/api/admission-status/:patientId', async (req, res) => {
 });
 
 module.exports = router;
-

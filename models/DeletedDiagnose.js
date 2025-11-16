@@ -4,53 +4,53 @@ const deletedDiagnoseSchema = new mongoose.Schema({
   originalMedicalId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Medical',
-    required: true
+    required: true,
   },
   patientId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Patient',
-    required: true
+    required: true,
   },
   department: {
     type: String,
     enum: ['OPD', 'Emergency'],
-    required: true
+    required: true,
   },
   diagnose: {
     date: {
       type: Date,
-      required: true
+      required: true,
     },
     complaint: {
       type: String,
-      required: true
+      required: true,
     },
     doctor_order: {
       type: String,
-      required: true
+      required: true,
     },
     nurse_assist: {
       type: String,
-      required: true
+      required: true,
     },
     doctor: {
       type: String,
-      required: true
-    }
+      required: true,
+    },
   },
   deleteReason: {
     type: String,
     enum: ['Wrong entry', 'Change of mind'],
-    required: true
+    required: true,
   },
   deletedAt: {
     type: Date,
-    default: Date.now
+    default: Date.now,
   },
   deletedBy: {
     type: String,
-    required: true
-  }
+    required: true,
+  },
 });
 
 module.exports = mongoose.model('DeletedDiagnose', deletedDiagnoseSchema);

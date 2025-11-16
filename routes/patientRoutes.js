@@ -15,8 +15,14 @@ async function generateHRN() {
   const prefix = `${yy}-00-00-`;
 
   // Find the most recent patient and on-hold with this prefix and take the highest suffix
-  const lastPatient = await Patient.findOne({ patientId: { $regex: `^${prefix}` } }).sort({ patientId: -1 }).exec().catch(()=>null);
-  const lastOnHold = await OnHold.findOne({ tempId: { $regex: `^${prefix}` } }).sort({ tempId: -1 }).exec().catch(()=>null);
+  const lastPatient = await Patient.findOne({ patientId: { $regex: `^${prefix}` } })
+    .sort({ patientId: -1 })
+    .exec()
+    .catch(() => null);
+  const lastOnHold = await OnHold.findOne({ tempId: { $regex: `^${prefix}` } })
+    .sort({ tempId: -1 })
+    .exec()
+    .catch(() => null);
 
   let lastSeq = 0;
   if (lastPatient && lastPatient.patientId) {
@@ -53,9 +59,9 @@ router.get('/patient', async (req, res) => {
       hold = await OnHold.findById(holdId);
     }
 
-  // Use hrn from query if provided (so after save we can pass next HRN);
-  // otherwise generate the next HRN from DB.
-  const prefillHrn = req.query.hrn || await generateHRN();
+    // Use hrn from query if provided (so after save we can pass next HRN);
+    // otherwise generate the next HRN from DB.
+    const prefillHrn = req.query.hrn || (await generateHRN());
     const regDate = moment().format('YYYY-MM-DD HH:mm:ss');
 
     res.render('patient', {
@@ -66,7 +72,7 @@ router.get('/patient', async (req, res) => {
       regDate,
       savedHr,
       savedName,
-      unidentified
+      unidentified,
     });
   } catch (err) {
     console.error('Error loading /patient page:', err);
@@ -74,7 +80,7 @@ router.get('/patient', async (req, res) => {
       error: 'Something went wrong while loading the form.',
       success: null,
       hold: null,
-      hrn: await generateHRN()
+      hrn: await generateHRN(),
     });
   }
 });
@@ -82,8 +88,8 @@ router.get('/patient', async (req, res) => {
 // POST /patient route
 router.post('/patient', async (req, res) => {
   try {
-  // Pre-generate next HRN for form rendering on errors
-  const prefillHrn = await generateHRN();
+    // Pre-generate next HRN for form rendering on errors
+    const prefillHrn = await generateHRN();
 
     // Debug: log incoming body for troubleshooting unidentified saves
     console.log('POST /patient received body:', JSON.stringify(req.body));
@@ -96,18 +102,37 @@ router.post('/patient', async (req, res) => {
       console.log('Handling unidentified save flow');
       const {
         // possible normal patient inputs (may be empty when on-hold is used)
-        firstName: nf, lastName: nl, middleInitial: nmi, birthDate: nbd, gender: ng,
-        edad: nedad, civilStatus: ncivil, address: naddress, contactDigits: ncontact,
-        religion: nreligion, bp: nbp, hr: nhr, rr: nrr, temp: ntemp, spo2: nspo2,
-        height: nheight, weight: nweight, lmp: nlmp,
+        firstName: nf,
+        lastName: nl,
+        middleInitial: nmi,
+        birthDate: nbd,
+        gender: ng,
+        edad: nedad,
+        civilStatus: ncivil,
+        address: naddress,
+        contactDigits: ncontact,
+        religion: nreligion,
+        bp: nbp,
+        hr: nhr,
+        rr: nrr,
+        temp: ntemp,
+        spo2: nspo2,
+        height: nheight,
+        weight: nweight,
+        lmp: nlmp,
         // on-hold specific inputs
-        estimateAge, clothes, locationFound, status, hrn, dateTimeFound
+        estimateAge,
+        clothes,
+        locationFound,
+        status,
+        hrn,
+        dateTimeFound,
       } = req.body;
 
-      const statusArray = Array.isArray(status) ? status : (status ? [status] : []);
-  // Use provided hrn (hidden `hrn` field) or generate one
-  let patientId = hrn || await generateHRN();
-  console.log('Assigned patientId for unidentified:', patientId);
+      const statusArray = Array.isArray(status) ? status : status ? [status] : [];
+      // Use provided hrn (hidden `hrn` field) or generate one
+      let patientId = hrn || (await generateHRN());
+      console.log('Assigned patientId for unidentified:', patientId);
 
       const safeLower = (v) => (v || '').toLowerCase();
 
@@ -116,17 +141,17 @@ router.post('/patient', async (req, res) => {
       // Build Patient using normal inputs when present, otherwise fall back to on-hold values
       const newPatient = new Patient({
         patientId,
-        firstName: (nf && nf.trim()) ? safeLower(nf) : 'UNIDENTIFIED',
-        lastName: (nl && nl.trim()) ? safeLower(nl) : patientId,
+        firstName: nf && nf.trim() ? safeLower(nf) : 'UNIDENTIFIED',
+        lastName: nl && nl.trim() ? safeLower(nl) : patientId,
         middleInitial: nmi || '',
         birthDate: nbd ? new Date(nbd) : undefined,
-        gender: (ng && ng.trim()) ? safeLower(ng) : 'Unknown',
-        edad: (nedad && nedad.trim()) ? nedad : (estimateAge || ''),
+        gender: ng && ng.trim() ? safeLower(ng) : 'Unknown',
+        edad: nedad && nedad.trim() ? nedad : estimateAge || '',
         civilStatus: ncivil || '',
         // Do NOT overwrite address with locationFound
-        address: (naddress && naddress.trim()) ? naddress : '',
+        address: naddress && naddress.trim() ? naddress : '',
         foundLocation: locationFound || '',
-        contactInfo: ncontact ? String(ncontact).replace(/\D/g,'') : '',
+        contactInfo: ncontact ? String(ncontact).replace(/\D/g, '') : '',
         clothes: clothes || '',
         onHoldStatus: statusArray,
         religion: nreligion || '',
@@ -138,7 +163,7 @@ router.post('/patient', async (req, res) => {
         height: nheight || '',
         weight: nweight || '',
         lmp: nlmp ? new Date(nlmp) : undefined,
-        registrationDate
+        registrationDate,
       });
 
       // Attempt save, retrying HRN generation if unique constraint collides
@@ -161,12 +186,14 @@ router.post('/patient', async (req, res) => {
       }
 
       const displayName = `${newPatient.lastName} ${newPatient.firstName}`.trim();
-      
+
       // Emit socket event for dashboard refresh
       const io = req.app.get('io');
       if (io) io.emit('dashboardRefresh');
-      
-      return res.redirect(`/patient?savedHr=${encodeURIComponent(newPatient.patientId)}&savedName=${encodeURIComponent(displayName)}&saved=1`);
+
+      return res.redirect(
+        `/patient?savedHr=${encodeURIComponent(newPatient.patientId)}&savedName=${encodeURIComponent(displayName)}&saved=1`,
+      );
     }
 
     const {
@@ -188,16 +215,17 @@ router.post('/patient', async (req, res) => {
       height,
       weight,
       lmp,
-      onHoldId
+      onHoldId,
     } = req.body;
     // Validate contact digits: must be exactly 11 digits (old local format, e.g., 09171234567)
     const cleanDigits = String(contactDigits || '').replace(/\D/g, '');
     if (cleanDigits.length !== 11 || !cleanDigits.startsWith('0')) {
       return res.render('patient', {
-        error: 'Invalid contact number. Enter exactly 11 digits starting with 0 (e.g. 09171234567).',
+        error:
+          'Invalid contact number. Enter exactly 11 digits starting with 0 (e.g. 09171234567).',
         success: null,
         hold: onHoldId ? await OnHold.findById(onHoldId) : null,
-        hrn: prefillHrn
+        hrn: prefillHrn,
       });
     }
     // Store in old local format (11 digits starting with 0)
@@ -206,8 +234,8 @@ router.post('/patient', async (req, res) => {
     // Helper to safely lower-case possibly undefined values
     const safeLower = (v) => (v || '').toLowerCase();
 
-  // Server-authoritative HRN (async incremental format)
-  const patientId = await generateHRN();
+    // Server-authoritative HRN (async incremental format)
+    const patientId = await generateHRN();
 
     const startOfDay = new Date(new Date(birthDate).setHours(0, 0, 0, 0));
     const endOfDay = new Date(new Date(birthDate).setHours(23, 59, 59, 999));
@@ -217,7 +245,7 @@ router.post('/patient', async (req, res) => {
       lastName: safeLower(lastName),
       middleInitial: safeLower(middleInitial),
       gender: safeLower(gender),
-      birthDate: `${startOfDay.toISOString()} - ${endOfDay.toISOString()}`
+      birthDate: `${startOfDay.toISOString()} - ${endOfDay.toISOString()}`,
     });
 
     const existingPatient = await Patient.findOne({
@@ -227,8 +255,8 @@ router.post('/patient', async (req, res) => {
       gender: safeLower(gender),
       birthDate: {
         $gte: startOfDay,
-        $lte: endOfDay
-      }
+        $lte: endOfDay,
+      },
     });
 
     console.log('Existing patient:', existingPatient);
@@ -238,7 +266,7 @@ router.post('/patient', async (req, res) => {
         error: 'This patient already has an account.',
         success: null,
         hold: onHoldId ? await OnHold.findById(onHoldId) : null,
-        hrn: prefillHrn
+        hrn: prefillHrn,
       });
     }
 
@@ -252,7 +280,7 @@ router.post('/patient', async (req, res) => {
       edad,
       civilStatus,
       address,
-  contactInfo: normalizedContact,
+      contactInfo: normalizedContact,
       religion,
       bp,
       hr,
@@ -262,7 +290,7 @@ router.post('/patient', async (req, res) => {
       height,
       weight,
       lmp: lmp ? new Date(lmp) : undefined,
-      registrationDate: new Date()
+      registrationDate: new Date(),
     });
 
     // Attempt save, retrying HRN generation if unique constraint collides
@@ -293,8 +321,8 @@ router.post('/patient', async (req, res) => {
         // SIMPLIFIED: Just update the existing Patient record in place (no HRN change)
         await Patient.findOneAndUpdate(
           { patientId: tempId },
-          { 
-            $set: { 
+          {
+            $set: {
               firstName: safeLower(firstName),
               lastName: safeLower(lastName),
               middleInitial: safeLower(middleInitial),
@@ -313,22 +341,20 @@ router.post('/patient', async (req, res) => {
               height,
               weight,
               lmp: lmp ? new Date(lmp) : undefined,
-              registrationDate: new Date()
-            } 
-          }
+              registrationDate: new Date(),
+            },
+          },
         );
 
         // Update fullName in Admissions (patientId stays the same)
-        const newFullName = `${safeLower(firstName)} ${safeLower(middleInitial) || ''} ${safeLower(lastName)}`.trim();
-        await Admission.updateMany(
-          { patientId: tempId },
-          { $set: { fullName: newFullName } }
-        );
+        const newFullName =
+          `${safeLower(firstName)} ${safeLower(middleInitial) || ''} ${safeLower(lastName)}`.trim();
+        await Admission.updateMany({ patientId: tempId }, { $set: { fullName: newFullName } });
 
         // Update OnHold status for tracking purposes
         await OnHold.findByIdAndUpdate(onHoldId, {
           onHoldStatus: ['Registered'],
-          registeredPatientId: tempId
+          registeredPatientId: tempId,
         });
 
         // Emit events to refresh UIs
@@ -339,26 +365,29 @@ router.post('/patient', async (req, res) => {
         }
 
         console.log(`Updated patient ${tempId} with real information (kept same HRN)`);
-        
+
         // Use tempId as the final patientId
         const displayName = `${lastName} ${firstName} ${middleInitial || ''}`.trim();
-        return res.redirect(`/patient?savedHr=${encodeURIComponent(tempId)}&savedName=${encodeURIComponent(displayName)}&saved=1`);
+        return res.redirect(
+          `/patient?savedHr=${encodeURIComponent(tempId)}&savedName=${encodeURIComponent(displayName)}&saved=1`,
+        );
       }
     }
 
-  const displayName = `${lastName} ${firstName} ${middleInitial || ''}`.trim();
-  
-  // Emit socket event for dashboard refresh
-  const io = req.app.get('io');
-  if (io) io.emit('dashboardRefresh');
-  
-  // Redirect back with saved HRN and display name so the UI can render the exact message
-  res.redirect(`/patient?savedHr=${encodeURIComponent(patientId)}&savedName=${encodeURIComponent(displayName)}&saved=1`);
+    const displayName = `${lastName} ${firstName} ${middleInitial || ''}`.trim();
+
+    // Emit socket event for dashboard refresh
+    const io = req.app.get('io');
+    if (io) io.emit('dashboardRefresh');
+
+    // Redirect back with saved HRN and display name so the UI can render the exact message
+    res.redirect(
+      `/patient?savedHr=${encodeURIComponent(patientId)}&savedName=${encodeURIComponent(displayName)}&saved=1`,
+    );
   } catch (err) {
     console.error(err);
     const hrn = await generateHRN();
     res.render('patient', { error: 'Error saving patient data', success: null, hold: null, hrn });
-
   }
 });
 
@@ -392,7 +421,11 @@ router.get('/patients/:patientId/view', async (req, res) => {
       res.render('dischargedpatientView', {
         patient: {
           hrn: discharged.patientId,
-          fullName: discharged.fullName || (patientBase ? `${patientBase.lastName}, ${patientBase.firstName} ${patientBase.middleInitial || ''}` : ''),
+          fullName:
+            discharged.fullName ||
+            (patientBase
+              ? `${patientBase.lastName}, ${patientBase.firstName} ${patientBase.middleInitial || ''}`
+              : ''),
           age: patientBase ? patientBase.edad : '',
           gender: patientBase ? patientBase.gender : '',
           address: patientBase ? patientBase.address : '',
@@ -405,8 +438,16 @@ router.get('/patients/:patientId/view', async (req, res) => {
           physician: discharged.diagnoses?.[0]?.doctor || '',
           nurse: discharged.diagnoses?.[0]?.nurse_assist || '',
           admittedAt: discharged.admittedAt ? new Date(discharged.admittedAt).toLocaleString() : '',
-          dischargedAt: discharged.dischargedAt ? new Date(discharged.dischargedAt).toLocaleString() : '',
-          totalDays: discharged.admittedAt && discharged.dischargedAt ? Math.ceil((new Date(discharged.dischargedAt) - new Date(discharged.admittedAt)) / (1000*60*60*24)) : '',
+          dischargedAt: discharged.dischargedAt
+            ? new Date(discharged.dischargedAt).toLocaleString()
+            : '',
+          totalDays:
+            discharged.admittedAt && discharged.dischargedAt
+              ? Math.ceil(
+                  (new Date(discharged.dischargedAt) - new Date(discharged.admittedAt)) /
+                    (1000 * 60 * 60 * 24),
+                )
+              : '',
           admittingDiagnosis: discharged.diagnoses?.[0]?.complaint || '',
           finalDiagnosis: doctorOrderContent,
           operation: '',
@@ -417,10 +458,10 @@ router.get('/patients/:patientId/view', async (req, res) => {
           results: '',
           placeOfOccurrence: '',
           transferredTo: '',
-          prcLicense: ''
+          prcLicense: '',
         },
         success: success || null,
-        error: error || null
+        error: error || null,
       });
       return;
     }
@@ -431,7 +472,7 @@ router.get('/patients/:patientId/view', async (req, res) => {
     const isProcessed = !!(processedRec && processedRec.processed);
     const [admissionCount, medicalCount] = await Promise.all([
       require('../models/Admission').countDocuments({ patientId }),
-      require('../models/Medical').countDocuments({ patientId })
+      require('../models/Medical').countDocuments({ patientId }),
     ]);
     res.render('patientView', {
       patient,
@@ -439,7 +480,7 @@ router.get('/patients/:patientId/view', async (req, res) => {
       admissionCount,
       medicalCount,
       success: success || null,
-      error: error || null
+      error: error || null,
     });
   } catch (err) {
     console.error('Error loading patient view:', err);
@@ -456,7 +497,10 @@ router.get('/patients/:patientId/edit', async (req, res) => {
     // Block editing if currently processed for admission
     const processedRec = await ProcessedPatient.findOne({ patientId });
     if (processedRec && processedRec.processed) {
-      return res.redirect(`/patients/${encodeURIComponent(patientId)}/view?error=` + encodeURIComponent('Cannot update: patient is currently in process for admission.'));
+      return res.redirect(
+        `/patients/${encodeURIComponent(patientId)}/view?error=` +
+          encodeURIComponent('Cannot update: patient is currently in process for admission.'),
+      );
     }
     res.render('patientEdit', { patient });
   } catch (err) {
@@ -475,7 +519,10 @@ router.post('/patients/:patientId/update', async (req, res) => {
     // Block updating if currently processed for admission
     const processedRec = await ProcessedPatient.findOne({ patientId });
     if (processedRec && processedRec.processed) {
-      return res.redirect(`/patients/${encodeURIComponent(patientId)}/view?error=` + encodeURIComponent('Cannot update: patient is currently in process for admission.'));
+      return res.redirect(
+        `/patients/${encodeURIComponent(patientId)}/view?error=` +
+          encodeURIComponent('Cannot update: patient is currently in process for admission.'),
+      );
     }
 
     const {
@@ -496,12 +543,17 @@ router.post('/patients/:patientId/update', async (req, res) => {
       spo2,
       height,
       weight,
-      lmp
+      lmp,
     } = req.body;
 
     const cleanDigits = String(contactDigits || '').replace(/\D/g, '');
     if (cleanDigits && (cleanDigits.length !== 11 || !cleanDigits.startsWith('0'))) {
-      return res.redirect(`/patients/${encodeURIComponent(patientId)}/view?error=` + encodeURIComponent('Invalid contact number. Enter exactly 11 digits starting with 0 (e.g. 09171234567).'));
+      return res.redirect(
+        `/patients/${encodeURIComponent(patientId)}/view?error=` +
+          encodeURIComponent(
+            'Invalid contact number. Enter exactly 11 digits starting with 0 (e.g. 09171234567).',
+          ),
+      );
     }
     const normalizedContact = cleanDigits || '';
 
@@ -532,17 +584,22 @@ router.post('/patients/:patientId/update', async (req, res) => {
     await Patient.updateOne({ patientId }, { $set: updates });
 
     // Update fullName in Admissions (patientId stays the same)
-    const newFullName = `${safeLower(firstName || patient.firstName)} ${safeLower(middleInitial || patient.middleInitial) || ''} ${safeLower(lastName || patient.lastName)}`.trim();
-    await Admission.updateMany(
-      { patientId },
-      { $set: { fullName: newFullName } }
-    );
+    const newFullName =
+      `${safeLower(firstName || patient.firstName)} ${safeLower(middleInitial || patient.middleInitial) || ''} ${safeLower(lastName || patient.lastName)}`.trim();
+    await Admission.updateMany({ patientId }, { $set: { fullName: newFullName } });
 
-    const displayName = `${(lastName || patient.lastName).toUpperCase()} ${(firstName || patient.firstName).toUpperCase()} ${(middleInitial || patient.middleInitial || '').toUpperCase()}`.trim();
-    return res.redirect(`/patients/${encodeURIComponent(patientId)}/view?success=` + encodeURIComponent(`Update HRN ${patientId} ${displayName}`));
+    const displayName =
+      `${(lastName || patient.lastName).toUpperCase()} ${(firstName || patient.firstName).toUpperCase()} ${(middleInitial || patient.middleInitial || '').toUpperCase()}`.trim();
+    return res.redirect(
+      `/patients/${encodeURIComponent(patientId)}/view?success=` +
+        encodeURIComponent(`Update HRN ${patientId} ${displayName}`),
+    );
   } catch (err) {
     console.error('Error updating patient:', err);
-    return res.redirect(`/patients/${encodeURIComponent(req.params.patientId)}/view?error=` + encodeURIComponent('Failed to update patient.'));
+    return res.redirect(
+      `/patients/${encodeURIComponent(req.params.patientId)}/view?error=` +
+        encodeURIComponent('Failed to update patient.'),
+    );
   }
 });
 
@@ -551,31 +608,46 @@ router.post('/patients/:patientId/delete', async (req, res) => {
   try {
     const { patientId } = req.params;
     const patient = await Patient.findOne({ patientId });
-    if (!patient) return res.redirect('/admit-list?error=' + encodeURIComponent('Patient not found'));
+    if (!patient)
+      return res.redirect('/admit-list?error=' + encodeURIComponent('Patient not found'));
 
     const processedRec = await ProcessedPatient.findOne({ patientId });
     const isProcessed = !!(processedRec && processedRec.processed);
     const [admissionCount, medicalCount] = await Promise.all([
       Admission.countDocuments({ patientId }),
-      Medical.countDocuments({ patientId })
+      Medical.countDocuments({ patientId }),
     ]);
 
     if (isProcessed) {
-      return res.redirect(`/patients/${encodeURIComponent(patientId)}/view?error=` + encodeURIComponent('Cannot delete: patient is currently in process for admission.'));
+      return res.redirect(
+        `/patients/${encodeURIComponent(patientId)}/view?error=` +
+          encodeURIComponent('Cannot delete: patient is currently in process for admission.'),
+      );
     }
     if (admissionCount > 0 || medicalCount > 0) {
-      return res.redirect(`/patients/${encodeURIComponent(patientId)}/view?error=` + encodeURIComponent(`Cannot delete: patient has related records (Admissions: ${admissionCount}, Medical: ${medicalCount}).`));
+      return res.redirect(
+        `/patients/${encodeURIComponent(patientId)}/view?error=` +
+          encodeURIComponent(
+            `Cannot delete: patient has related records (Admissions: ${admissionCount}, Medical: ${medicalCount}).`,
+          ),
+      );
     }
 
     await Patient.deleteOne({ patientId });
     // Clean up processed record if any
     await ProcessedPatient.deleteOne({ patientId }).catch(() => {});
 
-    const displayName = `${(patient.lastName || '').toUpperCase()} ${(patient.firstName || '').toUpperCase()} ${(patient.middleInitial || '').toUpperCase()}`.trim();
-    return res.redirect('/admit-list?success=' + encodeURIComponent(`Deleted HRN ${patientId} ${displayName}`));
+    const displayName =
+      `${(patient.lastName || '').toUpperCase()} ${(patient.firstName || '').toUpperCase()} ${(patient.middleInitial || '').toUpperCase()}`.trim();
+    return res.redirect(
+      '/admit-list?success=' + encodeURIComponent(`Deleted HRN ${patientId} ${displayName}`),
+    );
   } catch (err) {
     console.error('Error deleting patient:', err);
-    return res.redirect(`/patients/${encodeURIComponent(req.params.patientId)}/view?error=` + encodeURIComponent('Failed to delete patient.'));
+    return res.redirect(
+      `/patients/${encodeURIComponent(req.params.patientId)}/view?error=` +
+        encodeURIComponent('Failed to delete patient.'),
+    );
   }
 });
 
@@ -585,18 +657,25 @@ router.post('/patients/:patientId/archive', async (req, res) => {
     const { patientId } = req.params;
     const { reason } = req.body;
     const patient = await Patient.findOne({ patientId });
-    if (!patient) return res.redirect('/admit-list?error=' + encodeURIComponent('Patient not found'));
+    if (!patient)
+      return res.redirect('/admit-list?error=' + encodeURIComponent('Patient not found'));
 
     // Block archiving if already archived
     if (patient.isArchived) {
-      return res.redirect(`/patients/${encodeURIComponent(patientId)}/view?error=` + encodeURIComponent('Patient is already archived.'));
+      return res.redirect(
+        `/patients/${encodeURIComponent(patientId)}/view?error=` +
+          encodeURIComponent('Patient is already archived.'),
+      );
     }
 
     // Block archiving if patient is currently in process for admission
     const processedRec = await ProcessedPatient.findOne({ patientId });
     const isProcessed = !!(processedRec && processedRec.processed);
     if (isProcessed) {
-      return res.redirect(`/patients/${encodeURIComponent(patientId)}/view?error=` + encodeURIComponent('Cannot archive: patient is currently in process for admission.'));
+      return res.redirect(
+        `/patients/${encodeURIComponent(patientId)}/view?error=` +
+          encodeURIComponent('Cannot archive: patient is currently in process for admission.'),
+      );
     }
 
     // Archive (allow even with linked Admissions/Medical since it's non-destructive)
@@ -609,9 +688,9 @@ router.post('/patients/:patientId/archive', async (req, res) => {
           archivedAt: new Date(),
           archivedBy: 'admin', // TODO: wire session user later
           archivedFrom: 'Triage', // TODO: wire actual department from session later
-          archiveReason: trimmedReason || 'No reason provided'
-        }
-      }
+          archiveReason: trimmedReason || 'No reason provided',
+        },
+      },
     );
 
     // Send notification to Admission that HRN was archived
@@ -621,17 +700,23 @@ router.post('/patients/:patientId/archive', async (req, res) => {
         patientId,
         message: `HRN ${patientId} has been archived`,
         department: 'Admission',
-        read: false
+        read: false,
       });
     } catch (e) {
       console.warn('Failed to create archive notification:', e.message);
     }
 
-    const displayName = `${(patient.lastName || '').toUpperCase()} ${(patient.firstName || '').toUpperCase()} ${(patient.middleInitial || '').toUpperCase()}`.trim();
-    return res.redirect('/admit-list?success=' + encodeURIComponent(`Archived HRN ${patientId} ${displayName}`));
+    const displayName =
+      `${(patient.lastName || '').toUpperCase()} ${(patient.firstName || '').toUpperCase()} ${(patient.middleInitial || '').toUpperCase()}`.trim();
+    return res.redirect(
+      '/admit-list?success=' + encodeURIComponent(`Archived HRN ${patientId} ${displayName}`),
+    );
   } catch (err) {
     console.error('Error archiving patient:', err);
-    return res.redirect(`/patients/${encodeURIComponent(req.params.patientId)}/view?error=` + encodeURIComponent('Failed to archive patient.'));
+    return res.redirect(
+      `/patients/${encodeURIComponent(req.params.patientId)}/view?error=` +
+        encodeURIComponent('Failed to archive patient.'),
+    );
   }
 });
 
@@ -640,10 +725,14 @@ router.post('/patients/:patientId/restore', async (req, res) => {
   try {
     const { patientId } = req.params;
     const patient = await Patient.findOne({ patientId });
-    if (!patient) return res.redirect('/patient-archive?error=' + encodeURIComponent('Patient not found'));
+    if (!patient)
+      return res.redirect('/patient-archive?error=' + encodeURIComponent('Patient not found'));
 
     if (!patient.isArchived) {
-      return res.redirect(`/patients/${encodeURIComponent(patientId)}/view?error=` + encodeURIComponent('Patient is not archived.'));
+      return res.redirect(
+        `/patients/${encodeURIComponent(patientId)}/view?error=` +
+          encodeURIComponent('Patient is not archived.'),
+      );
     }
 
     // Restore
@@ -655,15 +744,20 @@ router.post('/patients/:patientId/restore', async (req, res) => {
           archivedAt: null,
           archivedBy: null,
           archivedFrom: null,
-          archiveReason: null
-        }
-      }
+          archiveReason: null,
+        },
+      },
     );
 
-    const displayName = `${(patient.lastName || '').toUpperCase()} ${(patient.firstName || '').toUpperCase()} ${(patient.middleInitial || '').toUpperCase()}`.trim();
-    return res.redirect('/admit-list?success=' + encodeURIComponent(`Restored HRN ${patientId} ${displayName}`));
+    const displayName =
+      `${(patient.lastName || '').toUpperCase()} ${(patient.firstName || '').toUpperCase()} ${(patient.middleInitial || '').toUpperCase()}`.trim();
+    return res.redirect(
+      '/admit-list?success=' + encodeURIComponent(`Restored HRN ${patientId} ${displayName}`),
+    );
   } catch (err) {
     console.error('Error restoring patient:', err);
-    return res.redirect('/patient-archive?error=' + encodeURIComponent('Failed to restore patient.'));
+    return res.redirect(
+      '/patient-archive?error=' + encodeURIComponent('Failed to restore patient.'),
+    );
   }
 });
