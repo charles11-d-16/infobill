@@ -6,5 +6,6 @@
     "ejs": "html"
   },
   "html.validate.scripts": false,
-  "javascript.validate.enable": false
+  "javascript.validate.enable": false,
+  "editor.defaultFormatter": "esbenp.prettier-vscode"
 }
