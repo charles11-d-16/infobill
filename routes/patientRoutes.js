@@ -412,7 +412,7 @@ router.get('/patients/:patientId/view', async (req, res) => {
     const discharged = await require('../models/DischargedPatient').findOne({ patientId });
     if (discharged) {
       // Also get patient base info for extra fields
-      const patientBase = await require('../models/Patient').findOne({ patientId });
+      const patientBase = await require('../models/patient').findOne({ patientId });
       // Find doctor who gave 'inom gamot' order
       let doctorOrderContent = '';
       if (Array.isArray(discharged.diagnoses) && discharged.diagnoses.length > 0) {
@@ -466,7 +466,7 @@ router.get('/patients/:patientId/view', async (req, res) => {
       return;
     }
     // Fallback: normal patient view
-    const patient = await require('../models/Patient').findOne({ patientId });
+    const patient = await require('../models/patient').findOne({ patientId });
     if (!patient) return res.status(404).send('Patient not found');
     const processedRec = await require('../models/ProcessedPatient').findOne({ patientId });
     const isProcessed = !!(processedRec && processedRec.processed);
