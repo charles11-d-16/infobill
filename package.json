@@ -1,20 +1,14 @@
 {
-  "name": "oslamhospital",
-  "version": "1.0.0",
-  "main": "index.js",
+  "name": "oslamib",
+  "version": "2.0.0",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node server.js",
     "dev": "node --watch -r dotenv-flow/config server.js",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
   "dependencies": {
     "bcrypt": "^6.0.0",
-    "body-parser": "^2.2.0",
     "ejs": "^3.1.10",
     "express": "^5.1.0",
     "express-session": "^1.18.2",
@@ -22,12 +16,9 @@
     "mongoose": "^8.15.1",
     "multer": "^2.0.2",
     "nodemailer": "^7.0.10",
-    "qrcode": "^1.5.4",
     "socket.io": "^4.8.1",
-    "speakeasy": "^2.0.0",
     "uuid": "^11.1.0"
   },
-  "description": "",
   "devDependencies": {
     "dotenv-flow": "^4.1.0",
     "prettier": "^3.6.2",
